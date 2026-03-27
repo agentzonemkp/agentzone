@@ -40,18 +40,22 @@ export interface Reputation {
 export interface Service {
   id: string;
   agent_id: string;
-  service_name: string;
+  name: string;
   description: string;
   price_usdc: number;
-  is_active: boolean;
+  active: boolean;
+  endpoint?: string;
+  input_schema?: string;
+  output_schema?: string;
 }
 
 export interface Validation {
   id: string;
   agent_id: string;
   validator_address: string;
-  is_valid: boolean;
+  passed: boolean;
   validated_at: string;
+  validation_type?: string;
   metadata?: string;
 }
 
@@ -80,15 +84,15 @@ export const GET_AGENTS_QUERY = `
       }
       services {
         id
-        service_name
+        name
         description
         price_usdc
-        is_active
+        active
       }
       validations {
         id
         validator_address
-        is_valid
+        passed
         validated_at
       }
     }
@@ -120,15 +124,15 @@ export const GET_AGENT_BY_ID_QUERY = `
       }
       services {
         id
-        service_name
+        name
         description
         price_usdc
-        is_active
+        active
       }
       validations {
         id
         validator_address
-        is_valid
+        passed
         validated_at
       }
     }
