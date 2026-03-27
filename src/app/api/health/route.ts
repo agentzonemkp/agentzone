@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
+import { agents } from '@/db/schema';
 import { sql } from 'drizzle-orm';
 
 export async function GET() {
   try {
-    await db.execute(sql`SELECT 1`);
+    await db.select({ count: sql`count(*)` }).from(agents);
     return NextResponse.json({ status: 'ok', timestamp: new Date().toISOString() });
   } catch (error) {
     return NextResponse.json(

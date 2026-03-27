@@ -5,11 +5,12 @@ import { eq } from 'drizzle-orm';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const agent = await db.query.agents.findFirst({
-      where: eq(agents.id, params.id),
+      where: eq(agents.id, id),
     });
 
     if (!agent) {
@@ -18,13 +19,13 @@ export async function GET(
 
     const [agentReputation, agentServices, agentValidations] = await Promise.all([
       db.query.reputation.findFirst({
-        where: eq(reputation.agent_id, params.id),
+        where: eq(reputation.agent_id, id),
       }),
       db.query.services.findMany({
-        where: eq(services.agent_id, params.id),
+        where: eq(services.agent_id, id),
       }),
       db.query.validations.findMany({
-        where: eq(validations.agent_id, params.id),
+        where: eq(validations.agent_id, id),
       }),
     ]);
 
