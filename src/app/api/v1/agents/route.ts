@@ -1,73 +1,101 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { graphqlClient, GET_AGENTS_QUERY, Agent } from '@/lib/graphql-client';
-import { db } from '@/db';
-import { agents, reputation } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { graphqlClient, queries } from '@/lib/graphql-client';
+import { createClient } from '@libsql/client';
+
+const turso = createClient({
+  url: process.env.DATABASE_URL!,
+  authToken: process.env.DATABASE_AUTH_TOKEN,
+});
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const category = searchParams.get('category');
-  const verified = searchParams.get('verified');
-  const limit = parseInt(searchParams.get('limit') || '20');
-  const source = searchParams.get('source') || 'graphql'; // 'graphql' or 'turso'
-
+  const limit = parseInt(searchParams.get('limit') || '50');
+  const offset = parseInt(searchParams.get('offset') || '0');
+  const verified_only = searchParams.get('verified') === 'true';
+  const min_trust_score = parseInt(searchParams.get('min_trust_score') || '0');
+  const sort_by = searchParams.get('sort_by') || 'trust_score'; // trust_score | revenue_30d | transaction_count
+  
   try {
-    if (source === 'turso') {
-      // Fallback to Turso for demo/testing
-      let query = db
-        .select({
-          agent: agents,
-          reputation: reputation,
-        })
-        .from(agents)
-        .leftJoin(reputation, eq(agents.id, reputation.agent_id))
-        .limit(limit);
-
-      if (category) {
-        query = query.where(eq(agents.category, category)) as any;
-      }
-
-      if (verified === 'true') {
-        query = query.where(eq(agents.verified, true)) as any;
-      }
-
-      const results = await query;
-
-      return NextResponse.json({
-        agents: results.map(r => ({
-          ...r.agent,
-          reputation: r.reputation,
-        })),
-        source: 'turso',
+    // Try GraphQL first
+    const variables = { limit, offset };
+    const query = verified_only ? queries.getVerifiedAgents : queries.getAgents;
+    
+    const data: any = await graphqlClient.request(query, variables);
+    const agents = data.Agent || [];
+    
+    // Filter by min trust score if specified
+    let filtered = agents;
+    if (min_trust_score > 0) {
+      filtered = agents.filter((a: any) => a.trust_score >= min_trust_score);
+    }
+    
+    // Apply sort
+    if (sort_by === 'revenue_30d') {
+      filtered.sort((a: any, b: any) => BigInt(b.revenue_30d || 0) > BigInt(a.revenue_30d || 0) ? 1 : -1);
+    } else if (sort_by === 'transaction_count') {
+      filtered.sort((a: any, b: any) => b.transaction_count - a.transaction_count);
+    }
+    
+    if (filtered.length > 0) {
+      return NextResponse.json({ 
+        agents: filtered,
+        count: filtered.length,
+        source: 'graphql'
       });
     }
-
-    // Primary: GraphQL from Envio indexer
-    const data = await graphqlClient.request<{ Agent: Agent[] }>(GET_AGENTS_QUERY, {
-      limit,
-      offset: 0,
-    });
-
-    let filteredAgents = data.Agent;
-
-    if (category) {
-      filteredAgents = filteredAgents.filter(a => a.category === category);
+    
+    // Fallback to Turso if GraphQL returns empty
+    console.log('[API] GraphQL returned no agents, falling back to Turso');
+    
+    let sql = `
+      SELECT * FROM agents
+      WHERE trust_score >= ?
+    `;
+    const params: any[] = [min_trust_score];
+    
+    if (verified_only) {
+      sql += ` AND has_erc8004_identity = TRUE`;
     }
-
-    if (verified === 'true') {
-      filteredAgents = filteredAgents.filter(a => a.verified);
-    }
-
+    
+    sql += ` ORDER BY ${sort_by} DESC LIMIT ? OFFSET ?`;
+    params.push(limit, offset);
+    
+    const result = await turso.execute({ sql, args: params });
+    
     return NextResponse.json({
-      agents: filteredAgents,
-      source: 'graphql',
+      agents: result.rows,
+      count: result.rows.length,
+      source: 'turso'
     });
+    
   } catch (error: any) {
-    console.error('Error fetching agents:', error);
-    console.error('Error details:', error?.response?.errors || error?.message || 'Unknown error');
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      details: process.env.NODE_ENV === 'development' ? error?.message : undefined
-    }, { status: 500 });
+    console.error('[API] Error fetching agents:', error);
+    
+    // Final fallback to Turso
+    try {
+      let sql = `SELECT * FROM agents WHERE trust_score >= ?`;
+      const params: any[] = [min_trust_score];
+      
+      if (verified_only) {
+        sql += ` AND has_erc8004_identity = TRUE`;
+      }
+      
+      sql += ` ORDER BY ${sort_by} DESC LIMIT ? OFFSET ?`;
+      params.push(limit, offset);
+      
+      const result = await turso.execute({ sql, args: params });
+      
+      return NextResponse.json({
+        agents: result.rows,
+        count: result.rows.length,
+        source: 'turso_fallback',
+        error: error.message
+      });
+    } catch (fallbackError: any) {
+      return NextResponse.json(
+        { error: 'Failed to fetch agents', details: fallbackError.message },
+        { status: 500 }
+      );
+    }
   }
 }

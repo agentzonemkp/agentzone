@@ -3,168 +3,196 @@ import { GraphQLClient } from 'graphql-request';
 const endpoint = process.env.GRAPHQL_ENDPOINT || 'https://indexer.dev.hyperindex.xyz/826cb72/v1/graphql';
 
 export const graphqlClient = new GraphQLClient(endpoint, {
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: {},
 });
 
 export interface Agent {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  pricing_model: string;
-  base_price_usdc: number;
   wallet_address: string;
-  api_endpoint: string;
-  verified: boolean;
-  created_at: string;
-  chain_id?: number;
-  nft_token_id?: string;
-  reputation?: Reputation;
-  services: Service[];
-  validations: Validation[];
-}
-
-export interface Reputation {
-  id: string;
-  agent_id: string;
-  total_jobs: number;
-  successful_jobs: number;
-  total_revenue_usdc: number;
-  reputation_score: number;
-  avg_response_time_ms: number;
-  last_updated: string;
-}
-
-export interface Service {
-  id: string;
-  agent_id: string;
-  name: string;
-  description: string;
-  price_usdc: number;
-  active: boolean;
+  
+  // ERC-8004 Identity
+  has_erc8004_identity: boolean;
+  erc8004_token_id?: string;
+  erc8004_contract?: string;
+  erc8004_chain_id?: number;
+  name?: string;
+  description?: string;
+  capabilities?: string[];
   endpoint?: string;
-  input_schema?: string;
-  output_schema?: string;
+  metadata_uri?: string;
+  verified_at?: string;
+  
+  // x402 Activity
+  total_revenue_usdc: string;
+  transaction_count: number;
+  unique_customers: number;
+  success_count: number;
+  failed_count: number;
+  revenue_30d: string;
+  tx_count_30d: number;
+  customers_30d: number;
+  
+  // Timing
+  first_seen_at: string;
+  last_active_at: string;
+  
+  // Trust & Ranking
+  trust_score: number;
+  success_rate: number;
+  
+  updated_at: string;
 }
 
-export interface Validation {
+export interface Payment {
   id: string;
-  agent_id: string;
-  validator_address: string;
-  passed: boolean;
-  validated_at: string;
-  validation_type?: string;
+  tx_hash: string;
+  chain_id: number;
+  block_number: string;
+  timestamp: string;
+  agent: {
+    wallet_address: string;
+    name?: string;
+  };
+  customer_address: string;
+  amount_usdc: string;
+  service_id?: string;
+  payment_id?: string;
   metadata?: string;
+  status: 'COMPLETED' | 'FAILED' | 'PENDING';
 }
 
-export const GET_AGENTS_QUERY = `
-  query GetAgents($limit: Int, $offset: Int) {
-    Agent(limit: $limit, offset: $offset, order_by: {created_at: desc}) {
-      id
-      name
-      description
-      category
-      pricing_model
-      base_price_usdc
-      wallet_address
-      api_endpoint
-      verified
-      created_at
-      chain_id
-      nft_token_id
-      reputation {
-        total_jobs
-        successful_jobs
-        total_revenue_usdc
-        reputation_score
-        avg_response_time_ms
-        last_updated
-      }
-      services {
-        id
+export const queries = {
+  // Get all agents (paginated, sorted by trust score)
+  getAgents: `
+    query GetAgents($limit: Int, $offset: Int, $orderBy: String) {
+      Agent(limit: $limit, offset: $offset, order_by: {trust_score: desc}) {
+        wallet_address
+        has_erc8004_identity
         name
         description
-        price_usdc
-        active
-      }
-      validations {
-        id
-        validator_address
-        passed
-        validated_at
+        capabilities
+        endpoint
+        total_revenue_usdc
+        transaction_count
+        revenue_30d
+        tx_count_30d
+        trust_score
+        success_rate
+        last_active_at
       }
     }
-  }
-`;
-
-export const GET_AGENT_BY_ID_QUERY = `
-  query GetAgentById($id: String!) {
-    Agent(where: {id: {_eq: $id}}) {
-      id
-      name
-      description
-      category
-      pricing_model
-      base_price_usdc
-      wallet_address
-      api_endpoint
-      verified
-      created_at
-      chain_id
-      nft_token_id
-      reputation {
-        total_jobs
-        successful_jobs
-        total_revenue_usdc
-        reputation_score
-        avg_response_time_ms
-        last_updated
-      }
-      services {
-        id
+  `,
+  
+  // Get agent by wallet address
+  getAgent: `
+    query GetAgent($wallet: String!) {
+      Agent(where: {wallet_address: {_eq: $wallet}}) {
+        wallet_address
+        has_erc8004_identity
+        erc8004_token_id
+        erc8004_contract
+        erc8004_chain_id
         name
         description
-        price_usdc
-        active
+        capabilities
+        endpoint
+        metadata_uri
+        verified_at
+        total_revenue_usdc
+        transaction_count
+        unique_customers
+        success_count
+        failed_count
+        revenue_30d
+        tx_count_30d
+        customers_30d
+        first_seen_at
+        last_active_at
+        trust_score
+        success_rate
+        updated_at
       }
-      validations {
+    }
+  `,
+  
+  // Get payments for an agent
+  getAgentPayments: `
+    query GetAgentPayments($wallet: String!, $limit: Int) {
+      Payment(
+        where: {agent: {wallet_address: {_eq: $wallet}}}
+        limit: $limit
+        order_by: {timestamp: desc}
+      ) {
         id
-        validator_address
-        passed
-        validated_at
+        tx_hash
+        chain_id
+        block_number
+        timestamp
+        customer_address
+        amount_usdc
+        service_id
+        payment_id
+        status
       }
     }
-  }
-`;
-
-export const SEARCH_AGENTS_QUERY = `
-  query SearchAgents($searchTerm: String!) {
-    Agent(
-      where: {
-        _or: [
-          {name: {_ilike: $searchTerm}},
-          {description: {_ilike: $searchTerm}},
-          {category: {_ilike: $searchTerm}}
-        ]
-      }
-      order_by: {created_at: desc}
-    ) {
-      id
-      name
-      description
-      category
-      pricing_model
-      base_price_usdc
-      wallet_address
-      verified
-      created_at
-      reputation {
-        total_jobs
-        successful_jobs
-        reputation_score
+  `,
+  
+  // Search agents
+  searchAgents: `
+    query SearchAgents($search: String!, $limit: Int) {
+      Agent(
+        where: {
+          _or: [
+            {name: {_ilike: $search}}
+            {description: {_ilike: $search}}
+            {wallet_address: {_ilike: $search}}
+          ]
+        }
+        limit: $limit
+        order_by: {trust_score: desc}
+      ) {
+        wallet_address
+        name
+        description
+        trust_score
+        revenue_30d
+        success_rate
       }
     }
-  }
-`;
+  `,
+  
+  // Get top agents by revenue
+  getTopAgentsByRevenue: `
+    query GetTopAgentsByRevenue($limit: Int) {
+      Agent(
+        limit: $limit
+        order_by: {revenue_30d: desc}
+        where: {revenue_30d: {_gt: "0"}}
+      ) {
+        wallet_address
+        name
+        revenue_30d
+        transaction_count
+        trust_score
+      }
+    }
+  `,
+  
+  // Get verified agents only
+  getVerifiedAgents: `
+    query GetVerifiedAgents($limit: Int, $offset: Int) {
+      Agent(
+        where: {has_erc8004_identity: {_eq: true}}
+        limit: $limit
+        offset: $offset
+        order_by: {trust_score: desc}
+      ) {
+        wallet_address
+        name
+        description
+        trust_score
+        revenue_30d
+        transaction_count
+      }
+    }
+  `,
+};
