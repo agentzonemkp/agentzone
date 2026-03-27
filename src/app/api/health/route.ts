@@ -9,7 +9,11 @@ export async function GET() {
     return NextResponse.json({ status: 'ok', timestamp: new Date().toISOString() });
   } catch (error) {
     return NextResponse.json(
-      { status: 'error', error: 'Database connection failed' },
+      { 
+        status: 'error', 
+        error: 'Database connection failed',
+        message: error instanceof Error ? error.message : String(error)
+      },
       { status: 500 }
     );
   }
