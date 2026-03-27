@@ -2,14 +2,28 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { agents, reputation } from '@/db/schema';
 import { randomUUID } from 'crypto';
+import { getSession } from '@/lib/session';
+import { verifyAgentOwnership } from '@/lib/onchain-verify';
 
 export async function POST(req: NextRequest) {
   try {
+    // Check session
+    const session = await getSession();
+    if (!session.isLoggedIn || !session.address) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
     const body = await req.json();
     const { name, description, category, pricingModel, basePrice, apiEndpoint, walletAddress } = body;
 
     if (!name || !category || !pricingModel || basePrice === undefined || !walletAddress) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    // Verify wallet owns agent identity on-chain
+    const verification = await verifyAgentOwnership(session.address, name);
+    if (!verification.verified) {
+      return NextResponse.json({ error: 'No ERC-8004 agent identity found for this wallet' }, { status: 403 });
     }
 
     const agentId = randomUUID();

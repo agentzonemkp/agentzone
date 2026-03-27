@@ -46,8 +46,10 @@ export const payments = sqliteTable('payments', {
   fee_usdc: real('fee_usdc').notNull(),
   affiliate_address: text('affiliate_address'),
   affiliate_fee_usdc: real('affiliate_fee_usdc'),
+  chain: text('chain'),
   status: text('status').notNull().default('pending'),
   timestamp: integer('timestamp', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  created_at: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 });
 
 export const validations = sqliteTable('validations', {
@@ -58,4 +60,26 @@ export const validations = sqliteTable('validations', {
   passed: integer('passed', { mode: 'boolean' }).notNull(),
   metadata: text('metadata'),
   validated_at: integer('validated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+});
+
+export const webhooks = sqliteTable('webhooks', {
+  id: text('id').primaryKey(),
+  agent_id: text('agent_id').references(() => agents.id),
+  url: text('url').notNull(),
+  events: text('events').notNull(), // JSON array
+  secret: text('secret').notNull(),
+  active: integer('active', { mode: 'boolean' }).notNull().default(true),
+  created_by: text('created_by').notNull(),
+  created_at: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+});
+
+export const apiKeys = sqliteTable('api_keys', {
+  id: text('id').primaryKey(),
+  key_hash: text('key_hash').notNull().unique(),
+  name: text('name').notNull(),
+  owner_address: text('owner_address').notNull(),
+  rate_limit_per_minute: integer('rate_limit_per_minute').notNull().default(60),
+  active: integer('active', { mode: 'boolean' }).notNull().default(true),
+  created_at: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  last_used: integer('last_used', { mode: 'timestamp' }),
 });
