@@ -51,7 +51,7 @@ export async function verifyAgentOwnership(
       args: [address],
     });
 
-    if (balance && balance > 0n) {
+    if (balance && balance > BigInt(0)) {
       // Get all tokens owned by this address
       for (let i = 0; i < Number(balance); i++) {
         const tokenId = await clients.base.readContract({
@@ -88,7 +88,7 @@ export async function verifyAgentOwnership(
       args: [address],
     });
 
-    if (balance && balance > 0n) {
+    if (balance && balance > BigInt(0)) {
       for (let i = 0; i < Number(balance); i++) {
         const tokenId = await clients.arbitrum.readContract({
           address: IDENTITY_REGISTRY_ARBITRUM,
@@ -131,7 +131,7 @@ export async function getAgentTokens(walletAddress: string): Promise<
       args: [address],
     });
 
-    if (balance && balance > 0n) {
+    if (balance && balance > BigInt(0)) {
       for (let i = 0; i < Number(balance); i++) {
         const tokenId = await clients.base.readContract({
           address: IDENTITY_REGISTRY_BASE,
@@ -163,7 +163,7 @@ export async function getAgentTokens(walletAddress: string): Promise<
       args: [address],
     });
 
-    if (balance && balance > 0n) {
+    if (balance && balance > BigInt(0)) {
       for (let i = 0; i < Number(balance); i++) {
       const tokenId = await clients.arbitrum.readContract({
         address: IDENTITY_REGISTRY_ARBITRUM,
