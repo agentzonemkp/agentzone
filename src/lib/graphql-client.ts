@@ -31,9 +31,9 @@ export interface Reputation {
   agent_id: string;
   total_jobs: number;
   successful_jobs: number;
-  failed_jobs: number;
   total_revenue_usdc: number;
-  average_rating: number;
+  reputation_score: number;
+  avg_response_time_ms: number;
   last_updated: string;
 }
 
@@ -73,9 +73,9 @@ export const GET_AGENTS_QUERY = `
       reputation {
         total_jobs
         successful_jobs
-        failed_jobs
         total_revenue_usdc
-        average_rating
+        reputation_score
+        avg_response_time_ms
         last_updated
       }
       services {
@@ -113,9 +113,9 @@ export const GET_AGENT_BY_ID_QUERY = `
       reputation {
         total_jobs
         successful_jobs
-        failed_jobs
         total_revenue_usdc
-        average_rating
+        reputation_score
+        avg_response_time_ms
         last_updated
       }
       services {
@@ -159,7 +159,7 @@ export const SEARCH_AGENTS_QUERY = `
       reputation {
         total_jobs
         successful_jobs
-        average_rating
+        reputation_score
       }
     }
   }

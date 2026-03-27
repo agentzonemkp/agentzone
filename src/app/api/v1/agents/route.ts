@@ -62,8 +62,12 @@ export async function GET(request: NextRequest) {
       agents: filteredAgents,
       source: 'graphql',
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching agents:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Error details:', error?.response?.errors || error?.message || 'Unknown error');
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: process.env.NODE_ENV === 'development' ? error?.message : undefined
+    }, { status: 500 });
   }
 }
