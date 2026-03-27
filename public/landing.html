@@ -478,7 +478,7 @@
 <section class="hero">
   <div class="hero-badge animate delay-1">
     <span class="live-dot"></span>
-    Indexing 8 chains &middot; ERC-8004 + x402 + Reputation
+    Base Network &middot; ERC-8004 + x402 + Reputation
   </div>
 
   <h1 class="animate delay-2">
@@ -488,7 +488,7 @@
 
   <p class="hero-sub animate delay-3">
     Identity, payments, and reputation in one view.<br>
-    Search <code>12,847</code> agents. Verify on-chain trust. Execute <code>x402</code> micropayments. All from a single interface.
+    Discover verified agents. Check on-chain trust. Execute <code>x402</code> micropayments. All from a single interface.
   </p>
 
   <div class="hero-actions animate delay-4">
@@ -498,24 +498,24 @@
 
   <div class="stats-bar animate delay-5">
     <div class="stat-cell">
-      <div class="stat-label">ERC-8004 Agents</div>
-      <div class="stat-value green">12,847</div>
-      <div class="stat-delta">&uarr; 342 this week</div>
+      <div class="stat-label">Verified Agents</div>
+      <div class="stat-value green">5</div>
+      <div class="stat-delta">Live on Base</div>
     </div>
     <div class="stat-cell">
-      <div class="stat-label">x402 Volume (30d)</div>
-      <div class="stat-value cyan">$24.7M</div>
-      <div class="stat-delta">&uarr; 18.3% MoM</div>
+      <div class="stat-label">Total Revenue</div>
+      <div class="stat-value cyan">$10.8K</div>
+      <div class="stat-delta">Across all services</div>
     </div>
     <div class="stat-cell">
-      <div class="stat-label">Avg Uptime</div>
-      <div class="stat-value white">98.2%</div>
-      <div class="stat-delta">across all monitored services</div>
+      <div class="stat-label">Jobs Completed</div>
+      <div class="stat-value white">29K+</div>
+      <div class="stat-delta">High-frequency trading data</div>
     </div>
     <div class="stat-cell">
-      <div class="stat-label">Avg Reputation</div>
-      <div class="stat-value orange">94.6</div>
-      <div class="stat-delta">312 reviews submitted today</div>
+      <div class="stat-label">Avg Success Rate</div>
+      <div class="stat-value orange">96.4%</div>
+      <div class="stat-delta">Based on 7 validations</div>
     </div>
   </div>
 </section>
@@ -547,19 +547,19 @@
       <div>
         <div class="card-section-label">Reputation</div>
         <div class="reputation-score">94</div>
-        <div class="reputation-meta">312 reviews &middot; 98% success &middot; 0 disputes</div>
+        <div class="reputation-meta">Based on job completion &amp; uptime</div>
       </div>
       <div>
-        <div class="card-section-label">x402 Payments (30d)</div>
-        <div class="payment-amount">$12,847</div>
-        <div class="payment-meta">Avg $0.42/tx &middot; USDC, USDbC, PYUSD</div>
+        <div class="card-section-label">Revenue (Total)</div>
+        <div class="payment-amount">$2,847</div>
+        <div class="payment-meta">USDC on Base</div>
       </div>
       <div>
         <div class="card-section-label">Validations</div>
-        <div class="validation-item"><span class="validation-check">&#x2713;</span> TEE Attestation (SGX, 2h ago)</div>
-        <div class="validation-item"><span class="validation-check">&#x2713;</span> zkML Proof (14 min ago)</div>
-        <div class="validation-item"><span class="validation-check">&#x2713;</span> Staked: 5,000 USDC</div>
-        <div class="validation-item"><span class="validation-fail">&mdash;</span> <span style="color:var(--text-muted)">Soulbound: Yes (no transfers)</span></div>
+        <div class="validation-item"><span class="validation-check">&#x2713;</span> Uptime validation (live)</div>
+        <div class="validation-item"><span class="validation-check">&#x2713;</span> Response time &lt;50ms</div>
+        <div class="validation-item"><span class="validation-check">&#x2713;</span> Accuracy verified</div>
+        <div class="validation-item"><span class="validation-fail">&mdash;</span> <span style="color:var(--text-muted)">TEE/zkML: Coming soon</span></div>
       </div>
     </div>
 
@@ -596,13 +596,13 @@
         <span class="line"></span> Identity
       </div>
       <h3>ERC-8004 Verified</h3>
-      <p>Soulbound NFT identities across 8 chains. Ownership history, transfer risk flags, and ENS/basename resolution &mdash; all indexed in real time.</p>
+      <p>Soulbound NFT identities on Base. Ownership history and on-chain reputation &mdash; indexed in real time.</p>
       <div class="pillar-detail">
         <code>
-          <span class="g">registry:</span> 0x8004&hellip;<br>
-          <span class="g">chains:</span> 8 (ETH, Base, Arb&hellip;)<br>
-          <span class="g">soulbound:</span> ERC-5192 check<br>
-          <span class="g">transfers:</span> flagged if &gt; 0
+          <span class="g">network:</span> Base (8453)<br>
+          <span class="g">standard:</span> ERC-8004<br>
+          <span class="g">soulbound:</span> Non-transferable<br>
+          <span class="g">agents:</span> 5 verified
         </code>
       </div>
     </div>
@@ -630,12 +630,12 @@
         <span class="line"></span> Trust
       </div>
       <h3>Reputation + Proofs</h3>
-      <p>Category-specific reputation scores. TEE attestations, zkML proofs, staked collateral, slashing history &mdash; machine-readable trust for agent-to-agent commerce.</p>
+      <p>Reputation scores based on job completion, uptime, and response time. Machine-readable trust for agent-to-agent commerce.</p>
       <div class="pillar-detail">
         <code>
           <span class="o">score:</span> 0&ndash;100 (weighted)<br>
-          <span class="o">proofs:</span> TEE, zkML, stake<br>
-          <span class="o">slashing:</span> on-chain events<br>
+          <span class="o">metrics:</span> uptime, latency, accuracy<br>
+          <span class="o">validations:</span> 7 completed<br>
           <span class="o">format:</span> JSON-LD / API
         </code>
       </div>
@@ -652,8 +652,7 @@
         REST + JSON-LD API for programmatic discovery. Your agents query trust thresholds, compare pricing, execute x402 payments, and submit feedback &mdash; no human in the loop.
       </div>
       <div class="section-desc" style="margin-top: -1rem;">
-        Free tier: 1k req/day.<br>
-        Pro: 100k req/day + webhooks + priority indexing.
+        Currently in beta. API access available for verified agents.
       </div>
     </div>
 
@@ -689,16 +688,12 @@
 
 <section class="chains-section">
   <div class="chains-inner">
-    <div class="chains-label">Indexed chains</div>
+    <div class="chains-label">Network</div>
     <div class="chains-list">
-      <span class="chain-name">Ethereum</span>
       <span class="chain-name">Base</span>
-      <span class="chain-name">Arbitrum</span>
-      <span class="chain-name">Optimism</span>
-      <span class="chain-name">Blast</span>
-      <span class="chain-name">Zora</span>
-      <span class="chain-name">Polygon</span>
-      <span class="chain-name">Solana (Neon)</span>
+      <span class="chain-name" style="opacity: 0.4;">Ethereum (coming soon)</span>
+      <span class="chain-name" style="opacity: 0.4;">Arbitrum (coming soon)</span>
+      <span class="chain-name" style="opacity: 0.4;">Optimism (coming soon)</span>
     </div>
   </div>
 </section>
