@@ -9,9 +9,10 @@ const turso = createClient({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const wallet = params.id.toLowerCase();
+  const { id } = await params;
+  const wallet = id.toLowerCase();
   
   try {
     // Try GraphQL first
