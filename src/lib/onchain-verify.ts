@@ -51,7 +51,7 @@ export async function verifyAgentOwnership(
       args: [address],
     });
 
-    if (balance > 0n) {
+    if (balance && balance > 0n) {
       // Get all tokens owned by this address
       for (let i = 0; i < Number(balance); i++) {
         const tokenId = await clients.base.readContract({
@@ -88,7 +88,7 @@ export async function verifyAgentOwnership(
       args: [address],
     });
 
-    if (balance > 0n) {
+    if (balance && balance > 0n) {
       for (let i = 0; i < Number(balance); i++) {
         const tokenId = await clients.arbitrum.readContract({
           address: IDENTITY_REGISTRY_ARBITRUM,
@@ -131,22 +131,24 @@ export async function getAgentTokens(walletAddress: string): Promise<
       args: [address],
     });
 
-    for (let i = 0; i < Number(balance); i++) {
-      const tokenId = await clients.base.readContract({
-        address: IDENTITY_REGISTRY_BASE,
-        abi: identityAbi,
-        functionName: 'tokenOfOwnerByIndex',
-        args: [address, BigInt(i)],
-      });
+    if (balance && balance > 0n) {
+      for (let i = 0; i < Number(balance); i++) {
+        const tokenId = await clients.base.readContract({
+          address: IDENTITY_REGISTRY_BASE,
+          abi: identityAbi,
+          functionName: 'tokenOfOwnerByIndex',
+          args: [address, BigInt(i)],
+        });
 
-      const tokenURI = await clients.base.readContract({
+        const tokenURI = await clients.base.readContract({
         address: IDENTITY_REGISTRY_BASE,
         abi: identityAbi,
         functionName: 'tokenURI',
         args: [tokenId],
       });
 
-      tokens.push({ chain: 'base', tokenId: tokenId.toString(), tokenURI });
+        tokens.push({ chain: 'base', tokenId: tokenId.toString(), tokenURI });
+      }
     }
   } catch (error) {
     console.error('Base token fetch error:', error);
@@ -161,7 +163,8 @@ export async function getAgentTokens(walletAddress: string): Promise<
       args: [address],
     });
 
-    for (let i = 0; i < Number(balance); i++) {
+    if (balance && balance > 0n) {
+      for (let i = 0; i < Number(balance); i++) {
       const tokenId = await clients.arbitrum.readContract({
         address: IDENTITY_REGISTRY_ARBITRUM,
         abi: identityAbi,
@@ -176,7 +179,8 @@ export async function getAgentTokens(walletAddress: string): Promise<
         args: [tokenId],
       });
 
-      tokens.push({ chain: 'arbitrum', tokenId: tokenId.toString(), tokenURI });
+        tokens.push({ chain: 'arbitrum', tokenId: tokenId.toString(), tokenURI });
+      }
     }
   } catch (error) {
     console.error('Arbitrum token fetch error:', error);
