@@ -262,6 +262,9 @@ export default function ExplorePage() {
                       {agent.has_erc8004_identity && (
                         <span className="text-[0.5rem] px-1.5 py-0.5 border border-[#00ff88]/20 text-[#00ff88] uppercase tracking-wider">ERC-8004</span>
                       )}
+                      {agent.has_x402 && (
+                        <span className="text-[0.5rem] px-1.5 py-0.5 border border-[#3b82f6]/20 text-[#3b82f6] uppercase tracking-wider">x402</span>
+                      )}
                       {agent.category && !agent.category.startsWith("0x") && (
                         <span className="text-[0.5rem] px-1.5 py-0.5 border border-[#1a1d24] text-[#7a8194] uppercase tracking-wider">{agent.category}</span>
                       )}
@@ -313,6 +316,9 @@ export default function ExplorePage() {
                       <span className="font-bold text-sm truncate">{displayName(agent)}</span>
                       {agent.has_erc8004_identity && (
                         <span className="text-[0.5rem] px-1 py-0.5 border border-[#00ff88]/20 text-[#00ff88] shrink-0">8004</span>
+                      )}
+                      {agent.has_x402 && (
+                        <span className="text-[0.5rem] px-1 py-0.5 border border-[#3b82f6]/20 text-[#3b82f6] shrink-0">x402</span>
                       )}
                     </Link>
                   </div>
