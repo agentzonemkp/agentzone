@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { graphqlClient, queries } from '@/lib/graphql-client';
 import { createClient } from '@libsql/client';
+import { batchResolveMetadata } from '@/lib/metadata-resolver';
 
 const turso = createClient({
   url: process.env.DATABASE_URL!,
@@ -167,6 +168,37 @@ export async function GET(req: NextRequest) {
     }));
 
     scored.sort((a: any, b: any) => b._score - a._score);
+
+    // Resolve metadata for top candidates with generic names (e.g. "Agent 1")
+    // This catches on-chain names like "ClawNews" that are stored in tokenURI
+    const topCandidates = scored.slice(0, Math.min(limit * 2, 50));
+    const needsResolve = topCandidates.filter((a: any) => {
+      const n = a.name || '';
+      return !n || /^Agent \d+$/.test(n) || (n.startsWith('0x') && n.length > 10);
+    });
+    if (needsResolve.length > 0) {
+      try {
+        const metadata = await batchResolveMetadata(
+          needsResolve.map((a: any) => ({ chain_id: a.chain_id || 8453, token_id: a.token_id })),
+          10 // max concurrent
+        );
+        for (const agent of needsResolve) {
+          const key = `${agent.chain_id || 8453}_${agent.token_id}`;
+          const meta = metadata.get(key);
+          if (meta) {
+            if (meta.name) agent.name = meta.name;
+            if (meta.description) agent.description = meta.description;
+            if (meta.category) agent.category = meta.category;
+            // Re-score with real metadata
+            agent._score = semanticScore(query, agent);
+          }
+        }
+        // Re-sort after metadata enrichment
+        scored.sort((a: any, b: any) => b._score - a._score);
+      } catch (e) {
+        console.error('[Search] Metadata resolution error:', e);
+      }
+    }
 
     const results = scored.slice(0, limit).map((a: any) => ({
       id: a.id,
