@@ -42,6 +42,16 @@ function semanticScore(query: string, agent: any): number {
   };
 
   let score = 0;
+  const nameLower = name.toLowerCase();
+  const queryLower = query.toLowerCase().trim();
+
+  // Exact name match — highest priority
+  if (nameLower === queryLower) return 1000;
+  // Name starts with query
+  if (nameLower.startsWith(queryLower)) score += 100;
+  // Name contains query as substring
+  if (nameLower.includes(queryLower)) score += 50;
+
   const expandedQ = new Set(qTokens);
   for (const token of qTokens) {
     for (const [key, syns] of Object.entries(synonyms)) {

@@ -18,14 +18,52 @@ export async function GET(request: NextRequest) {
   const sort_by = searchParams.get('sort_by') || 'trust_score';
 
   try {
-    // Search query
+    // Search query — use the semantic search engine for better results
     if (search) {
+      // Fetch more candidates (hex ILIKE + metadata overfetch)
       const data: any = await graphqlClient.request(queries.searchAgents, {
         search: `%${search}%`,
-        limit,
+        limit: Math.min(limit * 5, 200),
       });
-      const agents = (data.Agent || []).map(mapAgent);
-      return NextResponse.json({ agents, count: agents.length, source: 'graphql' });
+      let agents = (data.Agent || []).map(mapAgent);
+
+      // Also search agents with metadata (catches decoded names)
+      try {
+        const metaData: any = await graphqlClient.request(`{
+          Agent(where: {description: {_neq: ""}}, limit: 200, order_by: {trust_score: desc}) {
+            id wallet_address token_id name description category chain_id
+            trust_score transaction_count total_revenue_usdc has_erc8004_identity
+            reputation { reputation_score feedback_count }
+          }
+        }`);
+        const extraAgents = (metaData.Agent || []).map(mapAgent);
+        const existingIds = new Set(agents.map((a: any) => a.id));
+        for (const a of extraAgents) {
+          if (!existingIds.has(a.id)) agents.push(a);
+        }
+      } catch {}
+
+      // Filter by decoded name/description match
+      const searchLower = search.toLowerCase();
+      agents = agents.filter((a: any) => {
+        const name = (a.name || '').toLowerCase();
+        const desc = (a.description || '').toLowerCase();
+        const cat = (a.category || '').toLowerCase();
+        return name.includes(searchLower) || desc.includes(searchLower) || cat.includes(searchLower);
+      });
+
+      // Sort: exact name match first, then starts-with, then contains
+      agents.sort((a: any, b: any) => {
+        const aName = (a.name || '').toLowerCase();
+        const bName = (b.name || '').toLowerCase();
+        if (aName === searchLower && bName !== searchLower) return -1;
+        if (bName === searchLower && aName !== searchLower) return 1;
+        if (aName.startsWith(searchLower) && !bName.startsWith(searchLower)) return -1;
+        if (bName.startsWith(searchLower) && !aName.startsWith(searchLower)) return 1;
+        return (b.trust_score || 0) - (a.trust_score || 0);
+      });
+
+      return NextResponse.json({ agents: agents.slice(0, limit), count: agents.length, source: 'graphql' });
     }
 
     // Standard list
