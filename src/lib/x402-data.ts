@@ -166,7 +166,7 @@ export async function refreshX402Data(): Promise<number> {
   `);
   await turso.execute(`CREATE INDEX IF NOT EXISTS idx_x402_tx_count ON x402_payments(tx_count DESC)`);
 
-  while (hasMore && page < 50) { // Max 50 pages = 5000 sellers
+  while (hasMore && page < 5) { // Max 5 pages = 500 sellers (Vercel 10s timeout)
     try {
       const data = await getX402TopSellers(30, page, pageSize);
       const items = data.items || [];
