@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@libsql/client';
+import { resolveMetadata } from '@/lib/metadata-resolver';
 
 const turso = createClient({
   url: process.env.DATABASE_URL!,
@@ -96,6 +97,29 @@ export async function GET(request: NextRequest) {
       avg_response_time_ms: 0,
       rank_trust: 0,
     }));
+
+    // Resolve on-chain names for agents without readable names (batch, max 50)
+    const needsResolution = agents.filter(a =>
+      a.token_id && (!a.name || a.name.startsWith('0x') || a.name.match(/^Agent \d+$/))
+    ).slice(0, 50);
+
+    if (needsResolution.length > 0) {
+      const metaPromises = needsResolution.map(async (a) => {
+        try {
+          const meta = await resolveMetadata(a.chain_id || 8453, String(a.token_id));
+          if (meta?.name) {
+            a.name = meta.name;
+            a.description = meta.description || a.description;
+            // Cache name back to Turso (fire-and-forget)
+            turso.execute({
+              sql: `UPDATE agents_unified SET name = ? WHERE wallet_address = ?`,
+              args: [meta.name, String(a.wallet_address)],
+            }).catch(() => {});
+          }
+        } catch {}
+      });
+      await Promise.allSettled(metaPromises);
+    }
 
     return NextResponse.json({
       agents,

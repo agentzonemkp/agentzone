@@ -243,18 +243,22 @@ export default function ExplorePage() {
                     <p className="text-[0.7rem] text-[#7a8194] line-clamp-2 mb-3 leading-relaxed break-all">{desc}</p>
 
                     {/* Stats Row */}
-                    <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                    <div className="grid grid-cols-4 gap-1 sm:gap-1.5">
                       <div className="bg-[#0d0f12] p-1.5 sm:p-2 text-center">
-                        <div className="text-base sm:text-lg font-bold text-[#00ff88]">{agent.trust_score}</div>
-                        <div className="text-[0.45rem] sm:text-[0.5rem] text-[#454b5a] uppercase tracking-wider">Trust</div>
+                        <div className="text-sm sm:text-lg font-bold text-[#00ff88]">{agent.trust_score}</div>
+                        <div className="text-[0.4rem] sm:text-[0.5rem] text-[#454b5a] uppercase tracking-wider">Trust</div>
                       </div>
                       <div className="bg-[#0d0f12] p-1.5 sm:p-2 text-center">
-                        <div className="text-base sm:text-lg font-bold text-[#00d4ff]">{agent.avg_reputation || "—"}</div>
-                        <div className="text-[0.45rem] sm:text-[0.5rem] text-[#454b5a] uppercase tracking-wider">Rep</div>
+                        <div className="text-sm sm:text-lg font-bold text-[#00d4ff]">{agent.avg_reputation || "—"}</div>
+                        <div className="text-[0.4rem] sm:text-[0.5rem] text-[#454b5a] uppercase tracking-wider">Rep</div>
                       </div>
                       <div className="bg-[#0d0f12] p-1.5 sm:p-2 text-center overflow-hidden">
-                        <div className="text-base sm:text-lg font-bold text-[#e8eaed] truncate">{(agent.transaction_count || 0).toLocaleString()}</div>
-                        <div className="text-[0.45rem] sm:text-[0.5rem] text-[#454b5a] uppercase tracking-wider">Txns</div>
+                        <div className="text-sm sm:text-lg font-bold text-[#e8eaed] truncate">{(agent.transaction_count || 0).toLocaleString()}</div>
+                        <div className="text-[0.4rem] sm:text-[0.5rem] text-[#454b5a] uppercase tracking-wider">Txns</div>
+                      </div>
+                      <div className="bg-[#0d0f12] p-1.5 sm:p-2 text-center overflow-hidden">
+                        <div className="text-sm sm:text-lg font-bold text-[#ffaa00] truncate">${(agent.total_revenue_usdc || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                        <div className="text-[0.4rem] sm:text-[0.5rem] text-[#454b5a] uppercase tracking-wider">Earned</div>
                       </div>
                     </div>
 
