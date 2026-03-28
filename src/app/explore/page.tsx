@@ -33,7 +33,7 @@ const PAGE_SIZE = 50;
 export default function ExplorePage() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [query, setQuery] = useState("");
-  const [sortBy, setSortBy] = useState("trust_score");
+  const [sortBy, setSortBy] = useState("rank");
   const [minScore, setMinScore] = useState(0);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -181,9 +181,10 @@ export default function ExplorePage() {
         <div className="flex gap-3 mb-6 items-center flex-wrap">
           <select value={sortBy} onChange={e => setSortBy(e.target.value)}
             className="bg-[#111318] border border-[#1a1d24] px-3 py-1.5 text-xs text-[#7a8194] outline-none">
-            <option value="trust_score">Sort: Trust Score</option>
-            <option value="transaction_count">Sort: Transactions</option>
+            <option value="rank">Sort: Best Ranked</option>
             <option value="reputation">Sort: Reputation</option>
+            <option value="transaction_count">Sort: Transactions</option>
+            <option value="trust_score">Sort: Trust Score</option>
           </select>
           <div className="flex items-center gap-2 text-xs text-[#454b5a]">
             <span>Min trust: {minScore}</span>

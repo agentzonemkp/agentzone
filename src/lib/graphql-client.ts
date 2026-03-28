@@ -67,7 +67,7 @@ export const queries = {
   // Get all agents sorted by trust score
   getAgents: `
     query GetAgents($limit: Int, $offset: Int) {
-      Agent(limit: $limit, offset: $offset, order_by: {trust_score: desc}) {
+      Agent(limit: $limit, offset: $offset, order_by: [{transaction_count: desc_nulls_last}, {trust_score: desc_nulls_last}]) {
         id
         wallet_address
         chain_id
@@ -162,7 +162,7 @@ export const queries = {
           ]
         }
         limit: $limit
-        order_by: {trust_score: desc}
+        order_by: [{transaction_count: desc_nulls_last}, {trust_score: desc_nulls_last}]
       ) {
         id
         wallet_address
@@ -184,7 +184,7 @@ export const queries = {
     query GetTopAgents($limit: Int) {
       Agent(
         limit: $limit
-        order_by: {trust_score: desc}
+        order_by: [{transaction_count: desc_nulls_last}, {trust_score: desc_nulls_last}]
         where: {reputation: {}}
       ) {
         id
@@ -210,7 +210,7 @@ export const queries = {
         where: {has_erc8004_identity: {_eq: true}}
         limit: $limit
         offset: $offset
-        order_by: {trust_score: desc}
+        order_by: [{transaction_count: desc_nulls_last}, {trust_score: desc_nulls_last}]
       ) {
         id
         wallet_address

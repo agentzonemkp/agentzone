@@ -77,11 +77,20 @@ export async function GET(request: NextRequest) {
       agents = agents.filter((a: any) => a.trust_score >= min_trust_score);
     }
 
-    // Sort
+    // Sort — default: compound rank (reputation + usage), otherwise by specified field
     if (sort_by === 'transaction_count') {
-      agents.sort((a: any, b: any) => b.transaction_count - a.transaction_count);
+      agents.sort((a: any, b: any) => (b.transaction_count || 0) - (a.transaction_count || 0));
     } else if (sort_by === 'reputation') {
       agents.sort((a: any, b: any) => (b.avg_reputation || 0) - (a.avg_reputation || 0));
+    } else {
+      // Default compound sort: reputation desc → transaction_count desc → trust_score desc
+      agents.sort((a: any, b: any) => {
+        const repDiff = (b.avg_reputation || 0) - (a.avg_reputation || 0);
+        if (repDiff !== 0) return repDiff;
+        const txDiff = (b.transaction_count || 0) - (a.transaction_count || 0);
+        if (txDiff !== 0) return txDiff;
+        return (b.trust_score || 0) - (a.trust_score || 0);
+      });
     }
 
     return NextResponse.json({
