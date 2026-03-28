@@ -179,6 +179,14 @@ export async function GET(request: NextRequest) {
       agents = agents.filter((a: any) => a.trust_score >= min_trust_score);
     }
 
+    // STRICT: both ERC-8004 reputation AND x402 transactions must be > 0
+    // If either is zero, agent is not listed. No exceptions.
+    agents = agents.filter((a: any) => {
+      const hasReputation = (a.avg_reputation || 0) > 0 || (a.total_feedback || 0) > 0;
+      const hasTransactions = (a.transaction_count || 0) > 0;
+      return hasReputation && hasTransactions;
+    });
+
     // Sort — default: composite rank (reputation × usage), otherwise by specified field
     // Ranking formula: weighted composite of reputation, x402 transactions, feedback count, and trust
     // Agents with zero transactions get a significant penalty — reputation alone isn't enough
