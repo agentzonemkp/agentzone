@@ -49,8 +49,8 @@ export async function GET(
     if (!agent) {
       source = 'turso';
       const result = await turso.execute({
-        sql: `SELECT * FROM agents_unified WHERE wallet_address = ? OR id = ? LIMIT 1`,
-        args: [agentId.toLowerCase(), agentId],
+        sql: `SELECT * FROM agents_unified WHERE wallet_address = ? LIMIT 1`,
+        args: [agentId.toLowerCase()],
       });
       if (result.rows.length > 0) {
         const row = result.rows[0];

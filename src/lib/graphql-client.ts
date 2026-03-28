@@ -101,7 +101,7 @@ export const queries = {
   // Get single agent by ID
   getAgent: `
     query GetAgent($id: String!) {
-      Agent(where: {id: {_eq: $id}}) {
+      Agent(where: {wallet_address: {_eq: $id}}) {
         id
         wallet_address
         chain_id
