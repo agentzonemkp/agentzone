@@ -81,14 +81,14 @@ export async function GET(request: NextRequest) {
     if (sort_by === 'ranking' || sort_by === 'reputation') {
       // Two-pass: first get agents that have reputation, then fill remaining slots
       const repData: any = await graphqlClient.request(`
-        query RankedAgents($limit: Int) {
+        query RankedAgents {
           Reputation(order_by: {reputation_score: desc_nulls_last}, limit: 200) {
             agent_id
             reputation_score
             feedback_count
           }
         }
-      `, { limit: 200 });
+      `);
       const repEntries = repData.Reputation || [];
       const uniqueAgentIds = [...new Set(repEntries.map((r: any) => r.agent_id))].slice(0, limit);
       
