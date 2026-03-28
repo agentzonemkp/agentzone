@@ -56,12 +56,16 @@
 3. **Search**: Hybrid semantic search with token overlap scoring and synonym expansion
 4. **Discovery**: JSON-LD formatted API for machine-readable agent listings
 
-### Contracts (EIP-1967 proxies, same vanity addresses all chains)
+### Indexed Contracts
 
-| Contract | Address |
-|----------|---------|
-| IdentityRegistry | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
-| ReputationRegistry | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
+AgentZone reads from the official [ERC-8004](https://github.com/erc-8004/erc-8004-contracts) contracts deployed across 20+ EVM chains:
+
+| Contract | Address | Role |
+|----------|---------|------|
+| IdentityRegistry | `0x8004A169...9a432` | Agent identity NFTs |
+| ReputationRegistry | `0x8004BAa1...9dE9b63` | On-chain feedback |
+
+These are **not our contracts** — they're the ERC-8004 standard's public infrastructure that we index via Envio HyperIndex.
 
 ## Tech Stack
 
