@@ -176,31 +176,28 @@ export async function refreshX402Data(): Promise<number> {
         break;
       }
 
-      for (const seller of items) {
+      // Batch upsert all sellers from this page in a single transaction
+      const stmts = items.map((seller: any) => {
         const address = (seller.recipient || '').toLowerCase();
-        if (!address || address.length < 10) continue;
-
         const volumeUsdc = Number(seller.total_amount || 0) / 1_000_000;
         const txCount = Number(seller.tx_count || 0);
         const uniqueBuyers = Number(seller.unique_buyers || 0);
         const lastTxAt = seller.latest_block_timestamp || null;
-
-        await turso.execute({
-          sql: `
-            INSERT INTO x402_payments (wallet_address, tx_count, total_volume_usdc, unique_buyers, last_tx_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, datetime('now'))
-            ON CONFLICT(wallet_address) DO UPDATE SET
-              tx_count = excluded.tx_count,
-              total_volume_usdc = excluded.total_volume_usdc,
-              unique_buyers = excluded.unique_buyers,
-              last_tx_at = COALESCE(excluded.last_tx_at, last_tx_at),
-              updated_at = datetime('now')
-          `,
+        return {
+          sql: `INSERT INTO x402_payments (wallet_address, tx_count, total_volume_usdc, unique_buyers, last_tx_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, datetime('now'))
+                ON CONFLICT(wallet_address) DO UPDATE SET
+                  tx_count = excluded.tx_count,
+                  total_volume_usdc = excluded.total_volume_usdc,
+                  unique_buyers = excluded.unique_buyers,
+                  last_tx_at = COALESCE(excluded.last_tx_at, last_tx_at),
+                  updated_at = datetime('now')`,
           args: [address, txCount, volumeUsdc, uniqueBuyers, lastTxAt],
-        });
+        };
+      }).filter((s: any) => s.args[0] && s.args[0].length >= 10);
 
-        updatedCount++;
-      }
+      await turso.batch(stmts, 'write');
+      updatedCount += stmts.length;
 
       console.log(`[x402] Page ${page}: ${items.length} sellers processed`);
 
