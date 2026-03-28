@@ -18,52 +18,35 @@ export async function GET(request: NextRequest) {
   const sort_by = searchParams.get('sort_by') || 'trust_score';
 
   try {
-    // Search query — use the semantic search engine for better results
+    // Search query — proxy to /api/v1/search which has proper semantic scoring
     if (search) {
-      // Fetch more candidates (hex ILIKE + metadata overfetch)
-      const data: any = await graphqlClient.request(queries.searchAgents, {
-        search: `%${search}%`,
-        limit: Math.min(limit * 5, 200),
-      });
-      let agents = (data.Agent || []).map(mapAgent);
+      // Build internal search URL
+      const searchUrl = new URL('/api/v1/search', request.url);
+      searchUrl.searchParams.set('q', search);
+      searchUrl.searchParams.set('limit', String(limit));
+      searchUrl.searchParams.set('mode', 'hybrid');
 
-      // Also search agents with metadata (catches decoded names)
       try {
-        const metaData: any = await graphqlClient.request(`{
-          Agent(where: {description: {_neq: ""}}, limit: 200, order_by: {trust_score: desc}) {
-            id wallet_address token_id name description category chain_id
-            trust_score transaction_count total_revenue_usdc has_erc8004_identity
-            reputation { reputation_score feedback_count }
-          }
-        }`);
-        const extraAgents = (metaData.Agent || []).map(mapAgent);
-        const existingIds = new Set(agents.map((a: any) => a.id));
-        for (const a of extraAgents) {
-          if (!existingIds.has(a.id)) agents.push(a);
-        }
-      } catch {}
-
-      // Filter by decoded name/description match
-      const searchLower = search.toLowerCase();
-      agents = agents.filter((a: any) => {
-        const name = (a.name || '').toLowerCase();
-        const desc = (a.description || '').toLowerCase();
-        const cat = (a.category || '').toLowerCase();
-        return name.includes(searchLower) || desc.includes(searchLower) || cat.includes(searchLower);
-      });
-
-      // Sort: exact name match first, then starts-with, then contains
-      agents.sort((a: any, b: any) => {
-        const aName = (a.name || '').toLowerCase();
-        const bName = (b.name || '').toLowerCase();
-        if (aName === searchLower && bName !== searchLower) return -1;
-        if (bName === searchLower && aName !== searchLower) return 1;
-        if (aName.startsWith(searchLower) && !bName.startsWith(searchLower)) return -1;
-        if (bName.startsWith(searchLower) && !aName.startsWith(searchLower)) return 1;
-        return (b.trust_score || 0) - (a.trust_score || 0);
-      });
-
-      return NextResponse.json({ agents: agents.slice(0, limit), count: agents.length, source: 'graphql' });
+        const searchRes = await fetch(searchUrl.toString());
+        const searchData = await searchRes.json();
+        const agents = (searchData.agents || []).map((a: any) => ({
+          ...a,
+          verified: a.has_erc8004_identity,
+          avg_reputation: 0,
+          total_feedback: 0,
+          success_rate: 0,
+          unique_customers: 0,
+          revenue_30d: 0,
+          tx_count_30d: 0,
+          base_price_usdc: 0,
+          avg_response_time_ms: 0,
+          rank_trust: 0,
+          last_active_at: '',
+        }));
+        return NextResponse.json({ agents, count: agents.length, source: 'graphql' });
+      } catch {
+        // Fall through to standard list if search proxy fails
+      }
     }
 
     // Standard list

@@ -28,10 +28,8 @@ export async function GET(req: NextRequest) {
 
     // Pull from Envio GraphQL — real on-chain data
     const [statsData, topAgentsData, reputationData, chainData] = await Promise.all([
-      // Total agent count (binary search would be slow, use offset probe)
+      // Agents with metadata
       graphqlClient.request(`{
-        base: Agent(where: {chain_id: {_eq: 8453}}, limit: 1, offset: 35000) { id }
-        arb: Agent(where: {chain_id: {_eq: 42161}}, limit: 1, offset: 700) { id }
         withMeta: Agent(where: {description: {_neq: ""}}, limit: 1000) { id }
       }`),
       // Top agents by trust score with metadata
@@ -51,17 +49,13 @@ export async function GET(req: NextRequest) {
           agent_id reputation_score feedback_count
         }
       }`),
-      // Chain distribution
-      graphqlClient.request(`{
-        base: Agent(where: {chain_id: {_eq: 8453}}, limit: 1) { id }
-        arb: Agent(where: {chain_id: {_eq: 42161}}, limit: 1) { id }
-      }`),
     ]) as any[];
 
-    // Calculate network stats
-    const baseHas35k = (statsData as any).base?.length > 0;
-    const arbHas700 = (statsData as any).arb?.length > 0;
-    const totalAgents = (baseHas35k ? 37000 : 10000) + (arbHas700 ? 744 : 0);
+    // Use accurate binary search counts (same as /api/v1/stats)
+    const [totalAgents, totalReputationCount] = await Promise.all([
+      countEntities('Agent'),
+      countEntities('Reputation'),
+    ]);
     const agentsWithMeta = (statsData as any).withMeta?.length || 0;
 
     const topAgents = ((topAgentsData as any).Agent || []).map((a: any) => ({
@@ -101,22 +95,22 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Get real Arbitrum count via binary search probe
+    // Per-chain counts — probe how many agents exist on each chain
     let arbCount = 0;
-    if (arbHas700) {
-      arbCount = 744; // known count from indexer
-    } else {
-      // Check if Arbitrum has any agents at all
-      try {
-        const arbCheck: any = await graphqlClient.request(`{
-          Agent(where: {chain_id: {_eq: 42161}}, limit: 1) { id }
-        }`);
-        arbCount = arbCheck.Agent?.length > 0 ? 1 : 0;
-      } catch {}
-    }
+    try {
+      // Binary search for Arbitrum count
+      let lo = 0, hi = 5000;
+      while (lo < hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        const q = `{ Agent(where: {chain_id: {_eq: 42161}}, offset: ${mid}, limit: 1) { id } }`;
+        const d: any = await graphqlClient.request(q);
+        if (d.Agent?.length > 0) lo = mid + 1; else hi = mid;
+      }
+      arbCount = lo;
+    } catch {}
 
-    const baseCount = baseHas35k ? 37000 : 10000;
-    const totalPct = baseCount + arbCount;
+    const baseCount = Math.max(totalAgents - arbCount, 0);
+    const totalPct = baseCount + arbCount || 1;
     const basePct = Math.round((baseCount / totalPct) * 100);
     const arbPct = 100 - basePct;
 
@@ -129,7 +123,7 @@ export async function GET(req: NextRequest) {
       // Network KPIs
       totalAgents,
       agentsWithMetadata: agentsWithMeta,
-      totalReputationEntries: await countEntities('Reputation'),
+      totalReputationEntries: totalReputationCount,
       totalFeedback,
       avgReputationScore: normalizedReputation,
       chains: 2,

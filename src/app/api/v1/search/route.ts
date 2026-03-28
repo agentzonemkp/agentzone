@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { graphqlClient, queries } from '@/lib/graphql-client';
+import { createClient } from '@libsql/client';
+
+const turso = createClient({
+  url: process.env.DATABASE_URL!,
+  authToken: process.env.DATABASE_AUTH_TOKEN,
+});
 
 function hexToString(hex: string): string {
   if (!hex || hex === '0x' || !hex.startsWith('0x')) return hex || '';
@@ -117,6 +123,37 @@ export async function GET(req: NextRequest) {
           if (!existingIds.has(a.id)) candidates.push(a);
         }
       } catch {}
+    }
+
+    // Also search Turso DB (has curated/seeded agents with real names)
+    try {
+      const tursoResult = await turso.execute({
+        sql: `SELECT wallet_address, '' as id, 0 as token_id, name, description, category, 8453 as chain_id,
+              trust_score, transaction_count, total_revenue_usdc, has_erc8004_identity
+              FROM agents WHERE name LIKE ? OR description LIKE ? OR category LIKE ?
+              ORDER BY trust_score DESC LIMIT 50`,
+        args: [`%${query}%`, `%${query}%`, `%${query}%`],
+      });
+      const existingWallets = new Set(candidates.map((a: any) => a.wallet_address?.toLowerCase()));
+      for (const row of tursoResult.rows) {
+        if (!existingWallets.has((row.wallet_address as string)?.toLowerCase())) {
+          candidates.push({
+            id: row.wallet_address,
+            wallet_address: row.wallet_address,
+            token_id: row.token_id,
+            name: row.name,
+            description: row.description,
+            category: row.category,
+            chain_id: row.chain_id,
+            trust_score: Number(row.trust_score || 0),
+            transaction_count: Number(row.transaction_count || 0),
+            total_revenue_usdc: Number(row.total_revenue_usdc || 0),
+            has_erc8004_identity: Boolean(row.has_erc8004_identity),
+          });
+        }
+      }
+    } catch (e) {
+      console.error('[Search] Turso fallback error:', e);
     }
 
     // Score and rank
