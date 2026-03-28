@@ -538,14 +538,14 @@
       <div class="stat-delta" id="stat-chains-sub">Base · Arbitrum</div>
     </div>
     <div class="stat-cell">
-      <div class="stat-label">Reputation Entries</div>
-      <div class="stat-value white" id="stat-reputation">—</div>
-      <div class="stat-delta" id="stat-reputation-sub">On-chain feedback</div>
+      <div class="stat-label">x402 Transactions</div>
+      <div class="stat-value white" id="stat-x402-txs">—</div>
+      <div class="stat-delta" id="stat-x402-txs-sub">30-day volume</div>
     </div>
     <div class="stat-cell">
-      <div class="stat-label">Expanding To</div>
-      <div class="stat-value orange" style="font-size: 1.1rem;">ETH · OP · SOL</div>
-      <div class="stat-delta" style="color: var(--text-muted);">Coming soon</div>
+      <div class="stat-label">x402 Volume</div>
+      <div class="stat-value orange" id="stat-x402-vol">—</div>
+      <div class="stat-delta" id="stat-x402-vol-sub">USDC on Base</div>
     </div>
   </div>
   <script>
@@ -559,8 +559,16 @@
       const chains = d.chains || 2;
       document.getElementById('stat-chains').textContent = chains;
       document.getElementById('stat-chains-sub').textContent = chains === 2 ? 'Base · Arbitrum' : chains + ' chains indexed';
-      document.getElementById('stat-reputation').textContent = (d.total_reputation_entries || 0).toLocaleString();
-      document.getElementById('stat-reputation-sub').textContent = d.total_reputation_entries + ' on-chain reviews';
+      // x402 economy stats
+      const x402 = d.x402_economy;
+      if (x402) {
+        const txs = x402.total_transactions || 0;
+        document.getElementById('stat-x402-txs').textContent = txs > 1000000 ? (txs/1000000).toFixed(1) + 'M' : txs > 1000 ? (txs/1000).toFixed(0) + 'K' : txs.toString();
+        document.getElementById('stat-x402-txs-sub').textContent = x402.unique_buyers.toLocaleString() + ' unique buyers';
+        const vol = x402.total_volume_usdc || 0;
+        document.getElementById('stat-x402-vol').textContent = vol > 1000000 ? '$' + (vol/1000000).toFixed(1) + 'M' : '$' + (vol/1000).toFixed(0) + 'K';
+        document.getElementById('stat-x402-vol-sub').textContent = x402.unique_sellers.toLocaleString() + ' active sellers';
+      }
     } catch(e) {
       document.getElementById('stat-agents').textContent = '35K+';
       document.getElementById('stat-agents-sub').textContent = 'On Base + Arbitrum';
