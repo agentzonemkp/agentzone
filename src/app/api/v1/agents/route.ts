@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { graphqlClient, queries } from '@/lib/graphql-client';
 import { createClient } from '@libsql/client';
 import { batchResolveMetadata } from '@/lib/metadata-resolver';
+import { getAllX402PaymentData } from '@/lib/x402-data';
 
 const turso = createClient({
   url: process.env.DATABASE_URL!,
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest) {
             }
           } catch {}
         }
-        const agents = searchAgents.map((a: any) => {
+        let agents = searchAgents.map((a: any) => {
           const rep = repMap.get(a.id) || { avg: 0, count: 0 };
           return {
             ...a,
@@ -70,6 +71,23 @@ export async function GET(request: NextRequest) {
             last_active_at: '',
           };
         });
+        
+        // Enrich search results with x402 payment data
+        try {
+          const x402Data = await getAllX402PaymentData();
+          for (const agent of agents) {
+            const paymentData = x402Data.get(agent.wallet_address?.toLowerCase());
+            if (paymentData) {
+              agent.transaction_count = paymentData.tx_count;
+              agent.total_revenue_usdc = paymentData.total_volume_usdc;
+              agent.unique_customers = paymentData.unique_buyers;
+              agent.last_active_at = paymentData.last_tx || agent.last_active_at;
+            }
+          }
+        } catch (error: any) {
+          console.error('[agents/search] Error enriching with x402 data:', error.message);
+        }
+        
         return NextResponse.json({ agents, count: agents.length, source: 'graphql' });
       } catch {
         // Fall through to standard list if search proxy fails
@@ -132,6 +150,23 @@ export async function GET(request: NextRequest) {
           if (meta.category) agent.category = meta.category;
         }
       }
+    }
+
+    // Enrich with x402 payment data
+    try {
+      const x402Data = await getAllX402PaymentData();
+      for (const agent of agents) {
+        const paymentData = x402Data.get(agent.wallet_address.toLowerCase());
+        if (paymentData) {
+          agent.transaction_count = paymentData.tx_count;
+          agent.total_revenue_usdc = paymentData.total_volume_usdc;
+          agent.unique_customers = paymentData.unique_buyers;
+          agent.last_active_at = paymentData.last_tx || agent.last_active_at;
+        }
+      }
+    } catch (error: any) {
+      console.error('[agents] Error enriching with x402 data:', error.message);
+      // Continue without x402 data if it fails
     }
 
     // Filter by min trust score
