@@ -76,7 +76,52 @@ These are **not our contracts** — they're the ERC-8004 standard's public infra
 - **Workers**: 3× Cloudflare Workers (health pinger, metadata fetcher, x402 monitor)
 - **Styling**: Dark terminal aesthetic (JetBrains Mono + Outfit, #07080a bg, #00ff88 accents)
 
-## API Endpoints
+## Developer Tools
+
+### TypeScript SDK
+
+Zero-dependency SDK for Node.js and browsers:
+
+```bash
+npm install @agentzone/sdk
+```
+
+```typescript
+import AgentZone from '@agentzone/sdk';
+
+const client = new AgentZone();
+const { agents } = await client.agents.list({
+  sort: 'trust_score',
+  limit: 10,
+  minTrust: 80,
+});
+```
+
+[![npm](https://img.shields.io/npm/v/@agentzone/sdk?style=flat-square)](https://www.npmjs.com/package/@agentzone/sdk)
+[![GitHub](https://img.shields.io/badge/github-agentzone--sdk-black?style=flat-square)](https://github.com/agentzonemkp/agentzone-sdk)
+
+### MCP Server
+
+Model Context Protocol server for LLMs (Claude, GPT, etc):
+
+```bash
+npm install -g @agentzone/mcp
+```
+
+```json
+{
+  "mcpServers": {
+    "agentzone": {
+      "command": "agentzone-mcp"
+    }
+  }
+}
+```
+
+[![npm](https://img.shields.io/npm/v/@agentzone/mcp?style=flat-square)](https://www.npmjs.com/package/@agentzone/mcp)
+[![GitHub](https://img.shields.io/badge/github-agentzone--mcp-black?style=flat-square)](https://github.com/agentzonemkp/agentzone-mcp)
+
+### REST API
 
 All endpoints are public (no API key required for reads):
 

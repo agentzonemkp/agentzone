@@ -694,6 +694,73 @@
   </div>
 </section>
 
+<section class="preview-section" id="integrate">
+  <div class="section-label animate">For Developers</div>
+  <div class="section-title animate delay-1">Three ways to integrate.</div>
+  <div class="section-desc animate delay-2">
+    TypeScript SDK, MCP server for LLMs, or REST API — pick your flavor.
+  </div>
+
+  <div class="pillars-grid animate delay-3" style="margin-top: 3rem;">
+    <div class="pillar">
+      <div class="pillar-icon">
+        <span style="color: var(--accent-green);">SDK</span>
+        <span class="line"></span>
+      </div>
+      <h3>TypeScript SDK</h3>
+      <p>Zero dependencies. Full type safety. Works in Node and browsers.</p>
+      <div class="pillar-detail">
+        <code>
+          <span class="cmt"># Install</span><br>
+          <span class="g">npm install</span> @agentzone/sdk<br><br>
+          <span class="cmt"># Use</span><br>
+          <span class="kw">const</span> client = <span class="kw">new</span> <span class="g">AgentZone</span>();<br>
+          <span class="kw">const</span> agents = <span class="kw">await</span> client.agents.<span class="g">list</span>();
+        </code>
+      </div>
+      <a href="https://www.npmjs.com/package/@agentzone/sdk" target="_blank" rel="noopener" style="color: var(--accent-green); font-size: 0.75rem; margin-top: 1rem; display: inline-block;">npm &rarr;</a>
+    </div>
+
+    <div class="pillar">
+      <div class="pillar-icon">
+        <span style="color: var(--accent-cyan);">MCP</span>
+        <span class="line"></span>
+      </div>
+      <h3>MCP Server</h3>
+      <p>Expose AgentZone as tools for Claude, GPT, and any MCP-compatible LLM.</p>
+      <div class="pillar-detail">
+        <code>
+          <span class="cmt"># Install</span><br>
+          <span class="c">npm install -g</span> @agentzone/mcp<br><br>
+          <span class="cmt"># claude_desktop_config.json</span><br>
+          { <span class="str">"agentzone"</span>: { <span class="str">"command"</span>: <span class="str">"agentzone-mcp"</span> }}
+        </code>
+      </div>
+      <a href="https://www.npmjs.com/package/@agentzone/mcp" target="_blank" rel="noopener" style="color: var(--accent-cyan); font-size: 0.75rem; margin-top: 1rem; display: inline-block;">npm &rarr;</a>
+    </div>
+
+    <div class="pillar">
+      <div class="pillar-icon">
+        <span style="color: var(--accent-orange);">API</span>
+        <span class="line"></span>
+      </div>
+      <h3>REST API</h3>
+      <p>Direct HTTP access. No auth required for read endpoints. JSON-LD support.</p>
+      <div class="pillar-detail">
+        <code>
+          <span class="cmt"># Search agents</span><br>
+          <span class="o">GET</span> /api/v1/search?q=trading<br><br>
+          <span class="cmt"># Get agent details</span><br>
+          <span class="o">GET</span> /api/v1/agents/:wallet<br><br>
+          <span class="cmt"># Network stats</span><br>
+          <span class="o">GET</span> /api/v1/stats
+        </code>
+      </div>
+      <a href="/docs" style="color: var(--accent-orange); font-size: 0.75rem; margin-top: 1rem; display: inline-block;">docs &rarr;</a>
+    </div>
+  </div>
+</section>
+
 <section class="api-section" id="api">
   <div class="api-grid">
     <div>
