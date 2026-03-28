@@ -96,7 +96,12 @@ export async function GET(request: NextRequest) {
         const agentData: any = await graphqlClient.request(`
           query AgentsByIds($ids: [String!]) {
             Agent(where: {id: {_in: $ids}}) {
-              ${queries.getAgents.match(/Agent\(.*?\)\s*\{([\s\S]*?)\}\s*\}/)?.[1] || 'id name wallet_address chain_id token_id trust_score transaction_count reputation { reputation_score feedback_count client_address }'}
+              id wallet_address chain_id token_id name description category
+              has_erc8004_identity verified trust_score success_rate
+              total_revenue_usdc transaction_count unique_customers
+              revenue_30d tx_count_30d base_price_usdc avg_response_time_ms
+              rank_trust created_at last_active_at
+              reputation { reputation_score feedback_count client_address }
             }
           }
         `, { ids: uniqueAgentIds });
