@@ -64,12 +64,17 @@ function chainName(id: number) {
   return chains[id] || `Chain ${id}`;
 }
 
+function explorerUrl(chainId: number, type: 'address' | 'tx' | 'token', value: string) {
+  const base: Record<number, string> = { 8453: 'https://basescan.org', 42161: 'https://arbiscan.io', 1: 'https://etherscan.io', 10: 'https://optimistic.etherscan.io' };
+  return `${base[chainId] || base[8453]}/${type}/${value}`;
+}
+
 export default function AgentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const agentId = decodeURIComponent(id);
   const [data, setData] = useState<AgentDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'overview' | 'reputation' | 'payments'>('overview');
+  const [tab, setTab] = useState<'overview' | 'reputation' | 'payments' | 'x402'>('overview');
 
   useEffect(() => {
     fetch(`/api/v1/agents/${encodeURIComponent(agentId)}`)
@@ -164,15 +169,22 @@ export default function AgentPage({ params }: { params: Promise<{ id: string }> 
 
           {/* Owner + Contract */}
           <div className="border-t border-[#1a1d24] px-6 py-3 bg-[#0d0f12] flex items-center justify-between text-[0.7rem] text-[#454b5a] font-mono">
-            <span>Owner: {shortAddr(agent.wallet_address)}</span>
-            <span>Contract: {shortAddr(agent.contract_address)}</span>
+            <a href={explorerUrl(agent.chain_id, 'address', agent.wallet_address)} target="_blank" rel="noopener" className="hover:text-[#00ff88]">
+              Owner: {shortAddr(agent.wallet_address)} ↗
+            </a>
+            <a href={explorerUrl(agent.chain_id, 'address', agent.contract_address)} target="_blank" rel="noopener" className="hover:text-[#00ff88]">
+              Contract: {shortAddr(agent.contract_address)} ↗
+            </a>
             {agent.api_endpoint && <span>API: {agent.api_endpoint}</span>}
+            <a href={explorerUrl(agent.chain_id, 'token', '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913') + `?a=${agent.wallet_address}`} target="_blank" rel="noopener" className="hover:text-[#00d4ff]">
+              USDC Transfers ↗
+            </a>
           </div>
         </div>
 
         {/* Tabs */}
         <div className="flex gap-4 mb-6 border-b border-[#1a1d24]">
-          {(['overview', 'reputation', 'payments'] as const).map(t => (
+          {(['overview', 'reputation', 'payments', 'x402'] as const).map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -231,6 +243,83 @@ export default function AgentPage({ params }: { params: Promise<{ id: string }> 
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {tab === 'x402' && (
+          <div className="space-y-6">
+            <div className="border border-[#1a1d24] p-5 bg-[#111318]">
+              <div className="text-[0.6rem] uppercase tracking-widest text-[#454b5a] mb-3">x402 Payment Protocol</div>
+              <p className="text-sm text-[#7a8194] mb-4">
+                x402 enables HTTP-native payments. Agents expose paid endpoints that return <code className="text-[#00d4ff] bg-[#0d0f12] px-1 py-0.5">402 Payment Required</code> with
+                payment details. Clients pay via USDC on Base, then retry with proof.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="border border-[#1a1d24] p-4 bg-[#0d0f12]">
+                  <div className="text-[0.55rem] uppercase tracking-widest text-[#454b5a] mb-2">Agent Wallet</div>
+                  <a href={explorerUrl(agent.chain_id, 'address', agent.wallet_address)} target="_blank" rel="noopener"
+                    className="text-xs font-mono text-[#00ff88] hover:underline break-all">
+                    {agent.wallet_address}
+                  </a>
+                </div>
+                <div className="border border-[#1a1d24] p-4 bg-[#0d0f12]">
+                  <div className="text-[0.55rem] uppercase tracking-widest text-[#454b5a] mb-2">Payment Token</div>
+                  <div className="text-xs font-mono text-[#00d4ff]">USDC (Base)</div>
+                  <div className="text-[0.6rem] text-[#454b5a] mt-1">0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="border border-[#1a1d24] p-5 bg-[#111318]">
+              <div className="text-[0.6rem] uppercase tracking-widest text-[#454b5a] mb-3">Report Payment</div>
+              <p className="text-xs text-[#7a8194] mb-3">
+                Submit a USDC transaction hash to verify and record an x402 payment to this agent.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="0x... transaction hash"
+                  id="tx-hash-input"
+                  className="flex-1 bg-[#0d0f12] border border-[#1a1d24] text-[#e8eaed] px-3 py-2 text-xs font-mono focus:border-[#00ff88] outline-none"
+                />
+                <button
+                  onClick={async () => {
+                    const input = document.getElementById('tx-hash-input') as HTMLInputElement;
+                    const hash = input?.value?.trim();
+                    if (!hash) return;
+                    try {
+                      const res = await fetch('/api/v1/payments/report', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tx_hash: hash, agent_wallet: agent.wallet_address }),
+                      });
+                      const data = await res.json();
+                      alert(data.success ? `Verified! $${data.payment?.amount_usdc} USDC` : `Error: ${data.error}`);
+                    } catch (e) {
+                      alert('Verification failed');
+                    }
+                  }}
+                  className="px-4 py-2 bg-[#00ff88] text-[#07080a] text-xs font-bold uppercase tracking-wider hover:bg-[#00cc6a]"
+                >
+                  Verify & Record
+                </button>
+              </div>
+            </div>
+
+            <div className="border border-[#1a1d24] p-5 bg-[#111318]">
+              <div className="text-[0.6rem] uppercase tracking-widest text-[#454b5a] mb-3">Integration</div>
+              <pre className="text-xs font-mono text-[#7a8194] bg-[#0d0f12] p-4 overflow-x-auto whitespace-pre">{`// x402 client example
+const response = await fetch(agentEndpoint);
+if (response.status === 402) {
+  const paymentDetails = response.headers.get('X-Payment');
+  // Pay USDC to ${shortAddr(agent.wallet_address)} on Base
+  const tx = await payUSDC(paymentDetails);
+  // Retry with proof
+  const result = await fetch(agentEndpoint, {
+    headers: { 'X-Payment-Proof': tx.hash }
+  });
+}`}</pre>
+            </div>
           </div>
         )}
 
