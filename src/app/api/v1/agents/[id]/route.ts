@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { graphqlClient, queries } from '@/lib/graphql-client';
+import { resolveMetadata } from '@/lib/metadata-resolver';
 
 function hexToString(hex: string): string {
   if (!hex || hex === '0x' || !hex.startsWith('0x')) return hex || '';
@@ -33,6 +34,28 @@ export async function GET(
       : 0;
     const totalFeedback = reputations.reduce((sum: number, r: any) => sum + (r.feedback_count || 0), 0);
 
+    // Resolve on-chain metadata if name is generic
+    let resolvedName = decodeField(agent.name);
+    let resolvedDesc = decodeField(agent.description);
+    let resolvedCategory = decodeField(agent.category);
+    let resolvedEndpoint = agent.api_endpoint || '';
+    let resolvedImage = '';
+    let resolvedUrl = '';
+    let resolvedServices: any[] = [];
+
+    if (!resolvedName || /^Agent \d+$/.test(resolvedName) || resolvedName.startsWith('0x')) {
+      const meta = await resolveMetadata(agent.chain_id || 8453, agent.token_id);
+      if (meta) {
+        resolvedName = meta.name || resolvedName;
+        resolvedDesc = meta.description || resolvedDesc;
+        resolvedCategory = meta.category || resolvedCategory;
+        resolvedEndpoint = meta.services?.[0]?.url || resolvedEndpoint;
+        resolvedImage = meta.image || '';
+        resolvedUrl = meta.external_url || '';
+        resolvedServices = meta.services || [];
+      }
+    }
+
     return NextResponse.json({
       agent: {
         id: agent.id,
@@ -40,9 +63,12 @@ export async function GET(
         chain_id: agent.chain_id,
         contract_address: agent.contract_address,
         token_id: agent.token_id,
-        name: decodeField(agent.name) || `Agent #${agent.token_id}`,
-        description: decodeField(agent.description),
-        category: decodeField(agent.category),
+        name: resolvedName || `Agent #${agent.token_id}`,
+        description: resolvedDesc,
+        category: resolvedCategory,
+        image: resolvedImage,
+        external_url: resolvedUrl,
+        services: resolvedServices,
         has_erc8004_identity: agent.has_erc8004_identity,
         verified: agent.verified || agent.has_erc8004_identity,
         trust_score: agent.trust_score || 0,
@@ -54,7 +80,7 @@ export async function GET(
         tx_count_30d: agent.tx_count_30d || 0,
         base_price_usdc: agent.base_price_usdc || 0,
         pricing_model: agent.pricing_model || 'per_call',
-        api_endpoint: agent.api_endpoint || '',
+        api_endpoint: resolvedEndpoint,
         avg_response_time_ms: agent.avg_response_time_ms || 0,
         rank_revenue: agent.rank_revenue || 0,
         rank_transactions: agent.rank_transactions || 0,

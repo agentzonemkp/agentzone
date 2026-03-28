@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { graphqlClient, queries } from '@/lib/graphql-client';
 import { createClient } from '@libsql/client';
+import { batchResolveMetadata } from '@/lib/metadata-resolver';
 
 const turso = createClient({
   url: process.env.DATABASE_URL!,
@@ -31,6 +32,24 @@ export async function GET(request: NextRequest) {
     const query = verified_only ? queries.getVerifiedAgents : queries.getAgents;
     const data: any = await graphqlClient.request(query, { limit, offset });
     let agents = (data.Agent || []).map(mapAgent);
+
+    // Enrich agents that have generic names with on-chain metadata
+    const needsEnrich = agents.filter((a: any) => {
+      const n = a.name || '';
+      return !n || /^Agent \d+$/.test(n) || (n.startsWith('0x') && n.length > 10);
+    });
+    if (needsEnrich.length > 0) {
+      const metadata = await batchResolveMetadata(needsEnrich, 10);
+      for (const agent of agents) {
+        const key = `${agent.chain_id}_${agent.token_id}`;
+        const meta = metadata.get(key);
+        if (meta) {
+          if (meta.name) agent.name = meta.name;
+          if (meta.description) agent.description = meta.description;
+          if (meta.category) agent.category = meta.category;
+        }
+      }
+    }
 
     // Filter by min trust score
     if (min_trust_score > 0) {
