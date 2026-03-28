@@ -112,21 +112,21 @@ export default function ExplorePage() {
 
   return (
     <div className="min-h-screen bg-[#07080a] text-[#e8eaed]">
-      <nav className="fixed top-0 left-0 right-0 z-50 h-14 px-6 flex items-center justify-between border-b border-[#1a1d24] bg-[#07080a]/85 backdrop-blur-xl">
+      <nav className="fixed top-0 left-0 right-0 z-50 h-14 px-4 sm:px-6 flex items-center justify-between border-b border-[#1a1d24] bg-[#07080a]/85 backdrop-blur-xl">
         <Link href="/" className="font-bold flex items-center gap-2 text-sm">
           <span className="w-2 h-2 rounded-full bg-[#00ff88] shadow-[0_0_8px_#00ff88] animate-pulse" />
           AgentZone
         </Link>
-        <div className="flex gap-4 items-center text-xs">
-          <Link href="/analytics" className="text-[#7a8194] hover:text-[#00ff88]">Analytics</Link>
-          <Link href="/register" className="text-[#7a8194] hover:text-[#00ff88]">Register</Link>
+        <div className="flex gap-2 sm:gap-4 items-center text-xs">
+          <Link href="/analytics" className="text-[#7a8194] hover:text-[#00ff88] hidden sm:block">Analytics</Link>
+          <Link href="/register" className="text-[#7a8194] hover:text-[#00ff88] hidden sm:block">Register</Link>
           <ConnectButton showBalance={false} chainStatus="icon" />
         </div>
       </nav>
 
-      <main className="max-w-[1200px] mx-auto px-6 pt-24 pb-16">
+      <main className="max-w-[1200px] mx-auto px-4 sm:px-6 pt-20 sm:pt-24 pb-16">
         {/* Header */}
-        <div className="flex items-end justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
           <div>
             <h1 className="text-2xl font-bold mb-1">Explore Agents</h1>
             <p className="text-xs text-[#454b5a]">
@@ -264,8 +264,8 @@ export default function ExplorePage() {
             })}
           </div>
         ) : (
-          /* Table View */
-          <div className="grid gap-[1px] bg-[#1a1d24] border border-[#1a1d24]">
+          /* Table View — hidden on mobile, fallback to cards */
+          <div className="hidden sm:grid gap-[1px] bg-[#1a1d24] border border-[#1a1d24]">
             <div className="bg-[#0d0f12] px-5 py-2 grid grid-cols-12 gap-4 text-[0.55rem] uppercase tracking-widest text-[#454b5a]">
               <div className="col-span-1">ID</div>
               <div className="col-span-3">Agent</div>
@@ -319,34 +319,35 @@ export default function ExplorePage() {
         )}
 
         {/* Pagination */}
-        <div className="mt-6 flex items-center justify-between">
+        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex gap-1">
             <button onClick={() => goToPage(0)} disabled={page === 0}
-              className="px-3 py-1.5 text-xs border border-[#1a1d24] text-[#7a8194] hover:border-[#00ff88]/30 disabled:opacity-30 disabled:cursor-not-allowed">
-              « First
+              className="px-2 sm:px-3 py-1.5 text-xs border border-[#1a1d24] text-[#7a8194] hover:border-[#00ff88]/30 disabled:opacity-30 disabled:cursor-not-allowed">
+              «
             </button>
             <button onClick={() => goToPage(page - 1)} disabled={page === 0}
-              className="px-3 py-1.5 text-xs border border-[#1a1d24] text-[#7a8194] hover:border-[#00ff88]/30 disabled:opacity-30 disabled:cursor-not-allowed">
+              className="px-2 sm:px-3 py-1.5 text-xs border border-[#1a1d24] text-[#7a8194] hover:border-[#00ff88]/30 disabled:opacity-30 disabled:cursor-not-allowed">
               ‹ Prev
             </button>
           </div>
 
           <div className="flex gap-1">
-            {/* Page number buttons */}
-            {Array.from({ length: Math.min(7, totalPages) }, (_, i) => {
+            {/* Page number buttons — fewer on mobile */}
+            {Array.from({ length: Math.min(typeof window !== "undefined" && window.innerWidth < 640 ? 3 : 7, totalPages) }, (_, i) => {
+              const maxVisible = 7;
               let p: number;
-              if (totalPages <= 7) {
+              if (totalPages <= maxVisible) {
                 p = i;
               } else if (page < 4) {
                 p = i;
               } else if (page > totalPages - 4) {
-                p = totalPages - 7 + i;
+                p = totalPages - maxVisible + i;
               } else {
                 p = page - 3 + i;
               }
               return (
                 <button key={p} onClick={() => goToPage(p)}
-                  className={`px-3 py-1.5 text-xs border ${p === page ? "border-[#00ff88] text-[#00ff88] bg-[#00ff88]/10" : "border-[#1a1d24] text-[#454b5a] hover:border-[#00ff88]/30"}`}>
+                  className={`px-2 sm:px-3 py-1.5 text-xs border ${p === page ? "border-[#00ff88] text-[#00ff88] bg-[#00ff88]/10" : "border-[#1a1d24] text-[#454b5a] hover:border-[#00ff88]/30"}`}>
                   {p + 1}
                 </button>
               );
@@ -355,12 +356,12 @@ export default function ExplorePage() {
 
           <div className="flex gap-1">
             <button onClick={() => goToPage(page + 1)} disabled={!hasMore}
-              className="px-3 py-1.5 text-xs border border-[#1a1d24] text-[#7a8194] hover:border-[#00ff88]/30 disabled:opacity-30 disabled:cursor-not-allowed">
+              className="px-2 sm:px-3 py-1.5 text-xs border border-[#1a1d24] text-[#7a8194] hover:border-[#00ff88]/30 disabled:opacity-30 disabled:cursor-not-allowed">
               Next ›
             </button>
             <button onClick={() => goToPage(totalPages - 1)} disabled={page >= totalPages - 1}
-              className="px-3 py-1.5 text-xs border border-[#1a1d24] text-[#7a8194] hover:border-[#00ff88]/30 disabled:opacity-30 disabled:cursor-not-allowed">
-              Last »
+              className="px-2 sm:px-3 py-1.5 text-xs border border-[#1a1d24] text-[#7a8194] hover:border-[#00ff88]/30 disabled:opacity-30 disabled:cursor-not-allowed">
+              »
             </button>
           </div>
         </div>

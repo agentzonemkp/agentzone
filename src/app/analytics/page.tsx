@@ -57,7 +57,7 @@ export default function AnalyticsPage() {
 
   return (
     <div className="min-h-screen bg-[#07080a] text-[#e8eaed]">
-      <nav className="fixed top-0 left-0 right-0 z-50 h-14 px-6 flex items-center justify-between border-b border-[#1a1d24] bg-[#07080a]/85 backdrop-blur-xl">
+      <nav className="fixed top-0 left-0 right-0 z-50 h-14 px-4 sm:px-6 flex items-center justify-between border-b border-[#1a1d24] bg-[#07080a]/85 backdrop-blur-xl">
         <Link href="/" className="font-bold flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-[#00ff88] shadow-[0_0_8px_#00ff88] animate-pulse" />
           AgentZone
@@ -68,7 +68,7 @@ export default function AnalyticsPage() {
         </div>
       </nav>
 
-      <main className="max-w-[1200px] mx-auto px-6 pt-24 pb-16">
+      <main className="max-w-[1200px] mx-auto px-4 sm:px-6 pt-20 sm:pt-24 pb-16">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-bold">Network Analytics</h1>
@@ -85,7 +85,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-5 gap-[1px] bg-[#1a1d24] mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-[1px] bg-[#1a1d24] mb-8">
           {[
             { label: 'Total Agents', value: data.totalAgents > 1000 ? `${(data.totalAgents/1000).toFixed(1)}K` : data.totalAgents, color: '#00ff88' },
             { label: 'With Metadata', value: data.agentsWithMetadata, color: '#00d4ff' },
@@ -102,7 +102,7 @@ export default function AnalyticsPage() {
 
         {/* Payment KPIs (placeholder until volume exists) */}
         {data.totalVolume > 0 ? (
-          <div className="grid grid-cols-4 gap-[1px] bg-[#1a1d24] mb-8">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-[1px] bg-[#1a1d24] mb-8">
             {[
               { label: 'Total Volume', value: `$${data.totalVolume.toLocaleString()}`, color: '#00ff88' },
               { label: 'Protocol Revenue', value: `$${data.totalRevenue.toLocaleString()}`, color: '#00d4ff' },
@@ -125,7 +125,7 @@ export default function AnalyticsPage() {
         )}
 
         {/* Charts Row */}
-        <div className="grid grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-8">
           {/* Registrations Over Time */}
           <div className="border border-[#1a1d24] p-5 bg-[#111318]">
             <div className="text-[0.6rem] uppercase tracking-widest text-[#454b5a] mb-4">Agent Registrations / Day</div>

@@ -14,8 +14,32 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "AgentZone — ERC-8004 Agent Marketplace",
-  description: "Discover and transact with verified on-chain agents",
+  title: {
+    default: "AgentZone — Unified Explorer for Trustless AI Agents",
+    template: "%s | AgentZone",
+  },
+  description:
+    "Discover, verify, and transact with 37,000+ on-chain AI agents. ERC-8004 identity verification, x402 payments, and reputation scoring across Base, Arbitrum, and more.",
+  metadataBase: new URL("https://agentzone.fun"),
+  openGraph: {
+    title: "AgentZone — Unified Explorer for Trustless AI Agents",
+    description:
+      "Discover, verify, and transact with 37,000+ on-chain AI agents across multiple chains.",
+    url: "https://agentzone.fun",
+    siteName: "AgentZone",
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "AgentZone — Unified Explorer for Trustless AI Agents",
+    description:
+      "37K+ verified AI agents. ERC-8004 identity + x402 payments + reputation.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({

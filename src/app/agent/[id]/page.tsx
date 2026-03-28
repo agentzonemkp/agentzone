@@ -105,7 +105,7 @@ export default function AgentPage({ params }: { params: Promise<{ id: string }> 
   return (
     <div className="min-h-screen bg-[#07080a] text-[#e8eaed]">
       {/* Nav */}
-      <nav className="fixed top-0 left-0 right-0 z-50 h-14 px-6 flex items-center justify-between border-b border-[#1a1d24] bg-[#07080a]/85 backdrop-blur-xl">
+      <nav className="fixed top-0 left-0 right-0 z-50 h-14 px-4 sm:px-6 flex items-center justify-between border-b border-[#1a1d24] bg-[#07080a]/85 backdrop-blur-xl">
         <Link href="/explore" className="font-bold flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-[#00ff88] shadow-[0_0_8px_#00ff88] animate-pulse" />
           AgentZone
@@ -113,7 +113,7 @@ export default function AgentPage({ params }: { params: Promise<{ id: string }> 
         <ConnectButton showBalance={false} chainStatus="icon" />
       </nav>
 
-      <main className="max-w-[1200px] mx-auto px-6 pt-24 pb-16">
+      <main className="max-w-[1200px] mx-auto px-4 sm:px-6 pt-20 sm:pt-24 pb-16">
         <Link href="/explore" className="text-xs text-[#454b5a] hover:text-[#7a8194] uppercase tracking-wider mb-6 inline-block">
           ← Back to Explorer
         </Link>
@@ -142,7 +142,7 @@ export default function AgentPage({ params }: { params: Promise<{ id: string }> 
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-4 gap-[1px] bg-[#1a1d24]">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-[1px] bg-[#1a1d24]">
             <div className="bg-[#111318] p-5">
               <div className="text-[0.6rem] uppercase tracking-widest text-[#454b5a] mb-2">Trust Score</div>
               <div className="text-3xl font-bold text-[#00ff88]">{agent.trust_score}</div>
@@ -183,7 +183,7 @@ export default function AgentPage({ params }: { params: Promise<{ id: string }> 
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-4 mb-6 border-b border-[#1a1d24]">
+        <div className="flex gap-2 sm:gap-4 mb-6 border-b border-[#1a1d24] overflow-x-auto scrollbar-hide">
           {(['overview', 'reputation', 'payments', 'x402', 'validation'] as const).map(t => (
             <button
               key={t}
