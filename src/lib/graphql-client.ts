@@ -64,10 +64,10 @@ export interface Payment {
 }
 
 export const queries = {
-  // Get all agents sorted by trust score
+  // Get agents that have reputation (active agents only)
   getAgents: `
     query GetAgents($limit: Int, $offset: Int) {
-      Agent(limit: $limit, offset: $offset, order_by: [{transaction_count: desc_nulls_last}, {trust_score: desc_nulls_last}]) {
+      Agent(limit: $limit, offset: $offset, order_by: [{trust_score: desc_nulls_last}], where: {reputation: {}}) {
         id
         wallet_address
         chain_id

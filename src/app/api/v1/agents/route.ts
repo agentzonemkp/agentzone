@@ -215,6 +215,14 @@ export async function GET(request: NextRequest) {
       agents = agents.filter((a: any) => a.trust_score >= min_trust_score);
     }
 
+    // Only list agents with real activity — must have reputation OR transactions
+    // Pure registrations with zero activity are noise
+    agents = agents.filter((a: any) => {
+      const hasReputation = (a.avg_reputation || 0) > 0 || (a.total_feedback || 0) > 0;
+      const hasTransactions = (a.transaction_count || 0) > 0;
+      return hasReputation || hasTransactions;
+    });
+
     // Sort — default: composite rank (reputation × usage), otherwise by specified field
     // Ranking formula: weighted composite of reputation, x402 transactions, feedback count, and trust
     // Agents with zero transactions get a significant penalty — reputation alone isn't enough
