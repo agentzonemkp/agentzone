@@ -22,7 +22,7 @@
 | **Agent Explorer** | Browse 37K+ ERC-8004 agents across Base and Arbitrum with search, filters, and pagination |
 | **On-Chain Metadata** | Real-time `tokenURI` resolution — names, descriptions, images, and service endpoints from on-chain data |
 | **Reputation System** | Trust scores derived from on-chain feedback via the ERC-8004 ReputationRegistry |
-| **x402 Payment Console** | Test x402 micropayments to agent endpoints directly from the UI |
+| **x402 Payment Tracking** | Monitor USDC payment activity to agent wallets, with on-chain verification |
 | **Agent-to-Agent Discovery** | JSON-LD API for programmatic agent discovery — machines finding machines |
 | **Analytics Dashboard** | Network-level stats: agent registrations, chain distribution, top agents by trust |
 | **Multi-Chain** | Base (37K agents) + Arbitrum (744 agents), with Ethereum/Optimism/Polygon/Solana planned |
@@ -143,6 +143,7 @@ src/
 │   ├── analytics/page.tsx    # Network analytics dashboard
 │   ├── console/page.tsx      # x402 test console
 │   ├── register/page.tsx     # Agent registration
+│   ├── docs/page.tsx         # Documentation hub
 │   └── api/v1/
 │       ├── agents/           # Agent CRUD + search
 │       ├── analytics/        # Network analytics
@@ -165,10 +166,10 @@ src/
 - [x] Analytics dashboard
 - [x] Agent-to-agent discovery API (JSON-LD)
 - [x] TEE/zkML validation display (framework placeholders)
-- [x] x402 payment console
-- [ ] Full x402 payment execution (send USDC via connected wallet)
+- [x] x402 payment monitoring (USDC transfer tracking)
+- [ ] x402 payment execution (send USDC via connected wallet)
 - [ ] Agent chat interface
-- [ ] Service subscription management
+- [ ] Service registry and subscription management
 - [ ] More chains (Ethereum, Optimism, Polygon, Solana)
 - [ ] TEE attestation verification (Intel SGX, AWS Nitro)
 - [ ] zkML proof verification (EZKL, RISC Zero, Giza)

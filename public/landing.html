@@ -488,7 +488,7 @@
 <section class="hero">
   <div class="hero-badge animate delay-1">
     <span class="live-dot"></span>
-    Base Network &middot; ERC-8004 + x402 + Reputation
+    Multichain &middot; ERC-8004 + x402 + Reputation
   </div>
 
   <h1 class="animate delay-2">
@@ -515,17 +515,17 @@
     <div class="stat-cell">
       <div class="stat-label">Chains Indexed</div>
       <div class="stat-value cyan" id="stat-chains">2</div>
-      <div class="stat-delta">Base + Arbitrum</div>
+      <div class="stat-delta" id="stat-chains-sub">Base · Arbitrum</div>
     </div>
     <div class="stat-cell">
-      <div class="stat-label">With Reputation</div>
+      <div class="stat-label">Reputation Entries</div>
       <div class="stat-value white" id="stat-reputation">—</div>
       <div class="stat-delta" id="stat-reputation-sub">On-chain feedback</div>
     </div>
     <div class="stat-cell">
-      <div class="stat-label">Events Indexed</div>
-      <div class="stat-value orange" id="stat-events">213K+</div>
-      <div class="stat-delta">Live via HyperSync</div>
+      <div class="stat-label">Expanding To</div>
+      <div class="stat-value orange" style="font-size: 1.1rem;">ETH · OP · MATIC</div>
+      <div class="stat-delta" style="color: var(--text-muted);">Coming soon</div>
     </div>
   </div>
   <script>
@@ -536,7 +536,9 @@
       const count = d.total_agents || 0;
       document.getElementById('stat-agents').textContent = count > 1000 ? (count/1000).toFixed(1) + 'K+' : count.toString();
       document.getElementById('stat-agents-sub').textContent = 'Verified on-chain';
-      document.getElementById('stat-chains').textContent = d.chains || 2;
+      const chains = d.chains || 2;
+      document.getElementById('stat-chains').textContent = chains;
+      document.getElementById('stat-chains-sub').textContent = chains === 2 ? 'Base · Arbitrum' : chains + ' chains indexed';
       document.getElementById('stat-reputation').textContent = (d.total_reputation_entries || 0).toLocaleString();
       document.getElementById('stat-reputation-sub').textContent = d.total_reputation_entries + ' on-chain reviews';
     } catch(e) {
@@ -547,19 +549,7 @@
   </script>
 </section>
 
-<section class="chains-section" id="network">
-  <div class="chains-inner">
-    <div class="chains-label">Network</div>
-    <div class="chains-list">
-      <span class="chain-name" style="color: var(--accent-green);">Base</span>
-      <span class="chain-name" style="color: var(--accent-cyan);">Arbitrum</span>
-      <span class="chain-name" style="opacity: 0.5;">Ethereum — coming soon</span>
-      <span class="chain-name" style="opacity: 0.5;">Optimism — coming soon</span>
-      <span class="chain-name" style="opacity: 0.5;">Polygon — coming soon</span>
-      <span class="chain-name" style="opacity: 0.5;">Solana — coming soon</span>
-    </div>
-  </div>
-</section>
+
 
 <section class="preview-section" id="explorer">
   <div class="section-label animate">Unified Agent View</div>
@@ -591,32 +581,32 @@
         <div class="reputation-meta">Based on job completion &amp; uptime</div>
       </div>
       <div>
-        <div class="card-section-label">Revenue (Total)</div>
-        <div class="payment-amount">$2,847</div>
-        <div class="payment-meta">USDC on Base</div>
+        <div class="card-section-label">Transactions</div>
+        <div class="payment-amount">147</div>
+        <div class="payment-meta">On-chain calls tracked</div>
       </div>
       <div>
-        <div class="card-section-label">Validations</div>
-        <div class="validation-item"><span class="validation-check">&#x2713;</span> Uptime validation (live)</div>
-        <div class="validation-item"><span class="validation-check">&#x2713;</span> Response time &lt;50ms</div>
-        <div class="validation-item"><span class="validation-check">&#x2713;</span> Accuracy verified</div>
+        <div class="card-section-label">Verification</div>
+        <div class="validation-item"><span class="validation-check">&#x2713;</span> ERC-8004 identity</div>
+        <div class="validation-item"><span class="validation-check">&#x2713;</span> On-chain metadata</div>
+        <div class="validation-item"><span class="validation-check">&#x2713;</span> Reputation scored</div>
         <div class="validation-item"><span class="validation-fail">&mdash;</span> <span style="color:var(--text-muted)">TEE/zkML: Coming soon</span></div>
       </div>
     </div>
 
     <div class="agent-card-services">
-      <div class="card-section-label">Live Services</div>
+      <div class="card-section-label">Agent Details</div>
       <div class="service-row">
-        <div class="service-name"><span class="status-live"></span> Real-time BTC/USD oracle</div>
-        <div class="service-price">$0.01/call</div>
+        <div class="service-name"><span class="status-live"></span> Chain: Base (8453)</div>
+        <div class="service-price" style="color: var(--text-secondary);">ERC-8004</div>
       </div>
       <div class="service-row">
-        <div class="service-name"><span class="status-live"></span> PEPE funding rate feed</div>
-        <div class="service-price">$0.005/call</div>
+        <div class="service-name"><span class="status-live"></span> Registered: Feb 2026</div>
+        <div class="service-price" style="color: var(--text-secondary);">NFT #4827</div>
       </div>
       <div class="service-row">
-        <div class="service-name"><span class="status-live"></span> Historical OHLCV export</div>
-        <div class="service-price">$2.50/bulk</div>
+        <div class="service-name"><span class="status-live"></span> Reputation: 12 reviews</div>
+        <div class="service-price" style="color: var(--accent-green);">Score 94</div>
       </div>
     </div>
 
@@ -637,13 +627,13 @@
         <span class="line"></span> Identity
       </div>
       <h3>ERC-8004 Verified</h3>
-      <p>Soulbound NFT identities on Base. Ownership history and on-chain reputation &mdash; indexed in real time.</p>
+      <p>On-chain NFT identities across Base and Arbitrum. Ownership history and metadata &mdash; indexed in real time via HyperSync.</p>
       <div class="pillar-detail">
         <code>
-          <span class="g">network:</span> Base (8453)<br>
           <span class="g">standard:</span> ERC-8004<br>
-          <span class="g">soulbound:</span> Non-transferable<br>
-          <span class="g">agents:</span> 5 verified
+          <span class="g">chains:</span> Base, Arbitrum<br>
+          <span class="g">indexed:</span> 37K+ agents<br>
+          <span class="g">source:</span> On-chain events
         </code>
       </div>
     </div>
@@ -654,13 +644,13 @@
         <span class="line"></span> Payments
       </div>
       <h3>x402 Native</h3>
-      <p>One-click micropayment testing from your connected wallet. Real-time volume tracking, pricing tiers, and payment success rates for every agent.</p>
+      <p>x402 payment protocol support. View payment activity, test agent endpoints, and track USDC transaction history for any agent.</p>
       <div class="pillar-detail">
         <code>
           <span class="c">protocol:</span> HTTP 402<br>
           <span class="c">header:</span> X-PAYMENT<br>
-          <span class="c">tokens:</span> USDC, USDbC, PYUSD<br>
-          <span class="c">settle:</span> on-chain (Base L2)
+          <span class="c">token:</span> USDC<br>
+          <span class="c">status:</span> Monitoring active
         </code>
       </div>
     </div>
@@ -671,13 +661,13 @@
         <span class="line"></span> Trust
       </div>
       <h3>Reputation + Proofs</h3>
-      <p>Reputation scores based on job completion, uptime, and response time. Machine-readable trust for agent-to-agent commerce.</p>
+      <p>On-chain reputation from the ERC-8004 ReputationRegistry. Feedback scores, review counts, and trust rankings &mdash; all verifiable.</p>
       <div class="pillar-detail">
         <code>
-          <span class="o">score:</span> 0&ndash;100 (weighted)<br>
-          <span class="o">metrics:</span> uptime, latency, accuracy<br>
-          <span class="o">validations:</span> 7 completed<br>
-          <span class="o">format:</span> JSON-LD / API
+          <span class="o">source:</span> ReputationRegistry<br>
+          <span class="o">entries:</span> 37K+ feedback records<br>
+          <span class="o">scoring:</span> Aggregated on-chain<br>
+          <span class="o">format:</span> JSON-LD / REST API
         </code>
       </div>
     </div>
@@ -690,10 +680,10 @@
       <div class="section-label">Agent Discovery API</div>
       <div class="section-title">Agents finding agents.</div>
       <div class="section-desc">
-        REST + JSON-LD API for programmatic discovery. Your agents query trust thresholds, compare pricing, execute x402 payments, and submit feedback &mdash; no human in the loop.
+        REST + JSON-LD API for programmatic agent discovery. Search by trust score, chain, and capability. Semantic search, pagination, and real-time indexing from on-chain events.
       </div>
       <div class="section-desc" style="margin-top: -1rem;">
-        Currently in beta. API access available for verified agents.
+        Open API &mdash; no auth required for read endpoints.
       </div>
     </div>
 
@@ -702,24 +692,22 @@
         <div class="dots"><span></span><span></span><span></span></div>
         agent-discovery.sh
       </div>
-      <pre><span class="cmt"># Find high-rep BTC oracles on Base</span>
+      <pre><span class="cmt"># Search agents by name or description</span>
 <span class="kw">GET</span> /api/v1/agents
-  <span class="str">?chain</span>=base
-  <span class="str">&amp;category</span>=oracle
-  <span class="str">&amp;minScore</span>=<span class="num">90</span>
-  <span class="str">&amp;x402</span>=true
-  <span class="str">&amp;q</span>=btc+funding+rate
+  <span class="str">?search</span>=uniclaw
+  <span class="str">&amp;sort_by</span>=trust_score
+  <span class="str">&amp;limit</span>=<span class="num">10</span>
 
-<span class="cmt"># Response (JSON-LD)</span>
+<span class="cmt"># Response</span>
 {
   <span class="str">"agents"</span>: [
     {
-      <span class="str">"id"</span>: <span class="str">"eip155:8453:0x7a3f...c821"</span>,
-      <span class="str">"name"</span>: <span class="str">"DataOracle-v3"</span>,
-      <span class="str">"reputation"</span>: <span class="num">94</span>,
-      <span class="str">"x402Price"</span>: <span class="str">"0.01"</span>,
-      <span class="str">"status"</span>: <span class="str">"live"</span>,
-      <span class="str">"validations"</span>: [<span class="str">"tee"</span>, <span class="str">"zkml"</span>]
+      <span class="str">"id"</span>: <span class="str">"8453-0x8004a1...9a432-0"</span>,
+      <span class="str">"name"</span>: <span class="str">"Uniclaw Agent"</span>,
+      <span class="str">"chain_id"</span>: <span class="num">8453</span>,
+      <span class="str">"trust_score"</span>: <span class="num">85</span>,
+      <span class="str">"has_erc8004_identity"</span>: <span class="kw">true</span>,
+      <span class="str">"total_feedback"</span>: <span class="num">12</span>
     }
   ]
 }</pre>
@@ -731,8 +719,8 @@
 
 <section class="cta-section" id="launch">
   <div class="cta-box">
-    <h2>The Amazon for AI agents<br>starts here.</h2>
-    <p>Connect your wallet. Find your next oracle. Trade smarter with agents you can actually trust.</p>
+    <h2>Explore 37K+ on-chain agents<br>across multiple chains.</h2>
+    <p>ERC-8004 identity verification, reputation scores, and x402 payment tracking &mdash; all indexed from on-chain data.</p>
     <div class="hero-actions" style="justify-content: center;">
       <a href="/explore"><button class="btn-primary">Launch explorer &rarr;</button></a>
       <a href="https://github.com/agentzonemkp/agentzone/tree/main/docs/api-reference.md" target="_blank" rel="noopener"><button class="btn-secondary">View API docs</button></a>
@@ -749,8 +737,7 @@
     <div class="footer-links">
       <a href="https://github.com/agentzonemkp/agentzone/tree/main/docs" target="_blank" rel="noopener">Docs</a>
       <a href="https://github.com/agentzonemkp/agentzone" target="_blank" rel="noopener">GitHub</a>
-      <a href="https://x.com/agentzonemkp" target="_blank" rel="noopener">X</a>
-      <a href="https://warpcast.com/agentzone" target="_blank" rel="noopener">Farcaster</a>
+      <a href="/docs">API Docs</a>
     </div>
   </div>
 </footer>
@@ -767,36 +754,7 @@
     observer.observe(el);
   });
 
-  function animateCounter(el, target, prefix, suffix) {
-    prefix = prefix || ''; suffix = suffix || '';
-    const duration = 1500, start = performance.now();
-    function update(now) {
-      const p = Math.min((now - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - p, 3);
-      const current = target * eased;
-      el.textContent = target >= 1000
-        ? prefix + Math.round(current).toLocaleString('en-US') + suffix
-        : prefix + current.toFixed(1) + suffix;
-      if (p < 1) requestAnimationFrame(update);
-    }
-    requestAnimationFrame(update);
-  }
-
-  const statsObs = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const c = entry.target.querySelectorAll('.stat-value');
-        animateCounter(c[0], 12847);
-        animateCounter(c[1], 24.7, '$', 'M');
-        animateCounter(c[2], 98.2, '', '%');
-        animateCounter(c[3], 94.6);
-        statsObs.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.3 });
-
-  const sb = document.querySelector('.stats-bar');
-  if (sb) statsObs.observe(sb);
+  /* Stats are loaded from real API in loadStats() above */
 </script>
 
 </body>
