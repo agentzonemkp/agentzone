@@ -1,118 +1,51 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@libsql/client';
-import { graphqlClient } from '@/lib/graphql-client';
+import { NextRequest, NextResponse } from 'next/server';
+import { getX402GlobalStats, getX402TopSellers, getX402TopBuyers, getX402Facilitators } from '@/lib/x402-data';
 
-const turso = createClient({
-  url: process.env.DATABASE_URL!,
-  authToken: process.env.DATABASE_AUTH_TOKEN!,
-});
-
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Get total payments and volume
-    const totals = await turso.execute(`
-      SELECT 
-        COUNT(*) as total_agents_with_payments,
-        SUM(tx_count) as total_payments,
-        SUM(total_volume_usdc) as total_volume,
-        SUM(unique_buyers) as total_unique_buyers
-      FROM x402_payments
-      WHERE tx_count > 0
-    `);
+    const { searchParams } = new URL(request.url);
+    const timeframe = parseInt(searchParams.get('timeframe') || '30');
 
-    const totalsRow = totals.rows[0];
+    const [globalStats, topSellers, topBuyers] = await Promise.all([
+      getX402GlobalStats(timeframe),
+      getX402TopSellers(timeframe, 0, 20),
+      getX402TopBuyers(timeframe, 0, 10),
+    ]);
 
-    // Get top sellers
-    const topSellers = await turso.execute({
-      sql: `
-        SELECT 
-          wallet_address,
-          tx_count,
-          total_volume_usdc,
-          unique_buyers,
-          first_tx_at,
-          last_tx_at
-        FROM x402_payments
-        WHERE tx_count > 0
-        ORDER BY total_volume_usdc DESC
-        LIMIT 10
-      `,
-    });
+    const sellers = (topSellers.items || []).map((s: any) => ({
+      address: s.recipient,
+      volume_usdc: Number(s.total_amount || 0) / 1_000_000,
+      tx_count: Number(s.tx_count || 0),
+      unique_buyers: Number(s.unique_buyers || 0),
+      chains: s.chains || [],
+      last_active: s.latest_block_timestamp,
+    }));
 
-    // Enrich top sellers with agent names from GraphQL
-    const topSellerAddresses = topSellers.rows.map((r) => r.wallet_address as string);
-    let agentNameMap = new Map<string, { name: string; category: string }>();
-
-    if (topSellerAddresses.length > 0) {
-      try {
-        const agentData: any = await graphqlClient.request(`
-          query GetAgentNames($addresses: [String!]) {
-            Agent(where: {wallet_address: {_in: $addresses}}) {
-              wallet_address
-              name
-              category
-            }
-          }
-        `, { addresses: topSellerAddresses });
-
-        for (const agent of (agentData.Agent || [])) {
-          agentNameMap.set(agent.wallet_address.toLowerCase(), {
-            name: agent.name || 'Unknown',
-            category: agent.category || 'uncategorized',
-          });
-        }
-      } catch (error: any) {
-        console.error('[x402/stats] Error fetching agent names:', error.message);
-      }
-    }
-
-    const enrichedTopSellers = topSellers.rows.map((row) => {
-      const agentInfo = agentNameMap.get(row.wallet_address as string) || {
-        name: 'Unknown',
-        category: 'uncategorized',
-      };
-      return {
-        wallet_address: row.wallet_address,
-        name: agentInfo.name,
-        category: agentInfo.category,
-        tx_count: row.tx_count,
-        total_volume_usdc: row.total_volume_usdc,
-        unique_buyers: row.unique_buyers,
-        first_tx_at: row.first_tx_at,
-        last_tx_at: row.last_tx_at,
-      };
-    });
-
-    // Calculate activity over time (last 30 days)
-    const recentActivity = await turso.execute(`
-      SELECT 
-        DATE(last_tx_at) as date,
-        COUNT(*) as active_agents,
-        SUM(tx_count) as daily_txs
-      FROM x402_payments
-      WHERE last_tx_at > datetime('now', '-30 days')
-      GROUP BY DATE(last_tx_at)
-      ORDER BY date DESC
-      LIMIT 30
-    `);
+    const buyers = (topBuyers.items || []).map((b: any) => ({
+      address: b.sender,
+      volume_usdc: Number(b.total_amount || 0) / 1_000_000,
+      tx_count: Number(b.tx_count || 0),
+      unique_sellers: Number(b.unique_sellers || 0),
+      facilitators: b.facilitator_ids || [],
+    }));
 
     return NextResponse.json({
+      timeframe_days: timeframe,
       summary: {
-        total_agents_with_payments: Number(totalsRow.total_agents_with_payments || 0),
-        total_payments: Number(totalsRow.total_payments || 0),
-        total_volume_usdc: Number(totalsRow.total_volume || 0),
-        total_unique_buyers: Number(totalsRow.total_unique_buyers || 0),
+        total_transactions: Number(globalStats.total_transactions || 0),
+        total_volume_usdc: Number(globalStats.total_amount || 0) / 1_000_000,
+        unique_buyers: Number(globalStats.unique_buyers || 0),
+        unique_sellers: Number(globalStats.unique_sellers || 0),
+        latest_activity: globalStats.latest_block_timestamp,
       },
-      top_sellers: enrichedTopSellers,
-      recent_activity: recentActivity.rows,
+      top_sellers: sellers,
+      top_buyers: buyers,
+      source: 'x402scan.com',
     });
   } catch (error: any) {
     console.error('[x402/stats] Error:', error);
     return NextResponse.json(
-      {
-        error: 'Failed to fetch x402 stats',
-        details: error.message,
-      },
+      { error: 'Failed to fetch x402 stats', details: error.message },
       { status: 500 }
     );
   }

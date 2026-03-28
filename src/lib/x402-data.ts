@@ -1,88 +1,11 @@
 import { createClient } from '@libsql/client';
-import { createPublicClient, http, parseAbiItem, type Address } from 'viem';
-import { base } from 'viem/chains';
 
 const turso = createClient({
   url: process.env.DATABASE_URL!,
   authToken: process.env.DATABASE_AUTH_TOKEN!,
 });
 
-const baseClient = createPublicClient({
-  chain: base,
-  transport: http('https://mainnet.base.org'),
-});
-
-// Base facilitator addresses (from facilitators package)
-const FACILITATORS: Address[] = [
-  '0xdbdf3d8ed80f84c35d01c6c9f9271761bad90ba6',
-  '0x9aae2b0d1b9dc55ac9bab9556f9a26cb64995fb9',
-  '0x3a70788150c7645a21b95b7062ab1784d3cc2104',
-  '0x708e57b6650a9a741ab39cae1969ea1d2d10eca1',
-  '0xce82eeec8e98e443ec34fda3c3e999cbe4cb6ac2',
-  '0x7f6d822467df2a85f792d4508c5722ade96be056',
-  '0x001ddabba5782ee48842318bd9ff4008647c8d9c',
-  '0x9c09faa49c4235a09677159ff14f17498ac48738',
-  '0xcbb10c30a9a72fae9232f41cbbd566a097b4e03a',
-  '0x9fb2714af0a84816f5c6322884f2907e33946b88',
-  '0x47d8b3c9717e976f31025089384f23900750a5f4',
-  '0x94701e1df9ae06642bf6027589b8e05dc7004813',
-  '0x552300992857834c0ad41c8e1a6934a5e4a2e4ca',
-  '0xd7469bf02d221968ab9f0c8b9351f55f8668ac4f',
-  '0x88800e08e20b45c9b1f0480cf759b5bf2f05180c',
-  '0x6831508455a716f987782a1ab41e204856055cc2',
-  '0xdc8fbad54bf5151405de488f45acd555517e0958',
-  '0x91d313853ad458addda56b35a7686e2f38ff3952',
-  '0xadd5585c776b9b0ea77e9309c1299a40442d820f',
-  '0x4ffeffa616a1460570d1eb0390e264d45a199e91',
-  '0x222c4367a2950f3b53af260e111fc3060b0983ff',
-  '0xb70c4fe126de09bd292fe3d1e40c6d264ca6a52a',
-  '0xd348e724e0ef36291a28dfeccf692399b0e179f8',
-  '0x80c08de1a05df2bd633cf520754e40fde3c794d3',
-  '0xd8dfc729cbd05381647eb5540d756f4f8ad63eec',
-  '0x76eee8f0acabd6b49f1cc4e9656a0c8892f3332e',
-  '0x97d38aa5de015245dcca76305b53abe6da25f6a5',
-  '0x0168f80e035ea68b191faf9bfc12778c87d92008',
-  '0x5e437bee4321db862ac57085ea5eb97199c0ccc5',
-  '0xc19829b32324f116ee7f80d193f99e445968499a',
-  '0xc6699d2aada6c36dfea5c248dd70f9cb0235cb63',
-  '0xb2bd29925cbbcea7628279c91945ca5b98bf371b',
-  '0x25659315106580ce2a787ceec5efb2d347b539c9',
-  '0xb8f41cb13b1f213da1e94e1b742ec1323235c48f',
-  '0xe575fa51af90957d66fab6d63355f1ed021b887b',
-  '0x279e08f711182c79ba6d09669127a426228a4653',
-  '0xfe0920a0a7f0f8a1ec689146c30c3bbef439bf8a',
-  '0x97316fa4730bc7d3b295234f8e4d04a0a4c093e8',
-  '0x97db9b5291a218fc77198c285cefdc943ef74917',
-  '0x73b2b8df52fbe7c40fe78db52e3dffdd5db5ad07',
-  '0x724efafb051f17ae824afcdf3c0368ae312da264',
-  '0xa9a54ef09fc8b86bc747cec6ef8d6e81c38c6180',
-  '0x4638bc811c93bf5e60deed32325e93505f681576',
-  '0xd7d91a42dfadd906c5b9ccde7226d28251e4cd0f',
-  '0x4544b535938b67d2a410a98a7e3b0f8f68921ca7',
-  '0x59e8014a3b884392fbb679fe461da07b18c1ff81',
-  '0xe6123e6b389751c5f7e9349f3d626b105c1fe618',
-  '0xf70e7cb30b132fab2a0a5e80d41861aa133ea21b',
-  '0x3f61093f61817b29d9556d3b092e67746af8cdfd',
-  '0x612d72dc8402bba997c61aa82ce718ea23b2df5d',
-  '0x48ab4b0af4ddc2f666a3fcc43666c793889787a3',
-  '0xce7819f0b0b871733c933d1f486533bab95ec47b',
-  '0x1fc230ee3c13d0d520d49360a967dbd1555c8326',
-  '0x290d8b8edcafb25042725cb9e78bcac36b8865f8',
-  '0x87af99356d774312b73018b3b6562e1ae0e018c9',
-  '0x65058cf664d0d07f68b663b0d4b4f12a5e331a38',
-  '0x8d8fa42584a727488eeb0e29405ad794a105bb9b',
-  '0x88e13d4c764a6c840ce722a0a3765f55a85b327e',
-  '0x3be45f576696a2fd5a93c1330cd19f1607ab311d',
-  '0x103040545ac5031a11e8c03dd11324c7333a13c7',
-  '0x90d5e567017f6c696f1916f4365dd79985fce50f',
-  '0x90da501fdbec74bb0549100967eb221fed79c99b',
-  '0xb578b7db22581507d62bdbeb85e06acd1be09e11',
-  '0xd97c12726dcf994797c981d31cfb243d231189fb',
-  '0xe07e9cbf9a55d02e3ac356ed4706353d98c5a618',
-];
-
-const USDC_ADDRESS: Address = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
-const TRANSFER_EVENT = parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)');
+const X402SCAN_BASE = 'https://www.x402scan.com/api/trpc';
 const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
 
 export interface X402PaymentData {
@@ -96,12 +19,10 @@ export interface X402PaymentData {
 
 /**
  * Get x402 payment data for a specific wallet address
- * Returns cached data if fresh, otherwise fetches from on-chain
  */
 export async function getX402PaymentData(walletAddress: string): Promise<X402PaymentData | null> {
   const normalizedAddress = walletAddress.toLowerCase();
-  
-  // Check cache first
+
   const cached = await turso.execute({
     sql: `SELECT * FROM x402_payments WHERE wallet_address = ?`,
     args: [normalizedAddress],
@@ -109,177 +30,193 @@ export async function getX402PaymentData(walletAddress: string): Promise<X402Pay
 
   if (cached.rows.length > 0) {
     const row = cached.rows[0];
-    const updatedAt = new Date(row.updated_at as string).getTime();
-    const now = Date.now();
-    
-    // Return cached if fresh
-    if (now - updatedAt < CACHE_TTL_MS) {
-      return {
-        address: row.wallet_address as string,
-        tx_count: row.tx_count as number,
-        total_volume_usdc: row.total_volume_usdc as number,
-        unique_buyers: row.unique_buyers as number,
-        first_tx: row.first_tx_at as string | null,
-        last_tx: row.last_tx_at as string | null,
-      };
-    }
+    return {
+      address: String(row.wallet_address),
+      tx_count: Number(row.tx_count) || 0,
+      total_volume_usdc: Number(row.total_volume_usdc) || 0,
+      unique_buyers: Number(row.unique_buyers) || 0,
+      first_tx: row.first_tx_at ? String(row.first_tx_at) : null,
+      last_tx: row.last_tx_at ? String(row.last_tx_at) : null,
+    };
   }
 
   return null;
 }
 
 /**
- * Get all x402 payment data (for enriching agent list)
- * Returns Map<address, PaymentData>
+ * Get x402 payment data for multiple wallet addresses (batch)
  */
-export async function getAllX402PaymentData(): Promise<Map<string, X402PaymentData>> {
+export async function getBatchX402PaymentData(walletAddresses: string[]): Promise<Map<string, X402PaymentData>> {
+  if (walletAddresses.length === 0) return new Map();
+
+  const placeholders = walletAddresses.map(() => '?').join(',');
+  const normalizedAddresses = walletAddresses.map(a => a.toLowerCase());
+
   const result = await turso.execute({
-    sql: `SELECT * FROM x402_payments WHERE updated_at > datetime('now', '-15 minutes')`,
+    sql: `SELECT * FROM x402_payments WHERE wallet_address IN (${placeholders}) AND tx_count > 0`,
+    args: normalizedAddresses,
   });
 
-  const map = new Map<string, X402PaymentData>();
+  const paymentMap = new Map<string, X402PaymentData>();
   for (const row of result.rows) {
-    map.set(row.wallet_address as string, {
-      address: row.wallet_address as string,
-      tx_count: row.tx_count as number,
-      total_volume_usdc: row.total_volume_usdc as number,
-      unique_buyers: row.unique_buyers as number,
-      first_tx: row.first_tx_at as string | null,
-      last_tx: row.last_tx_at as string | null,
+    const addr = String(row.wallet_address);
+    paymentMap.set(addr, {
+      address: addr,
+      tx_count: Number(row.tx_count) || 0,
+      total_volume_usdc: Number(row.total_volume_usdc) || 0,
+      unique_buyers: Number(row.unique_buyers) || 0,
+      first_tx: row.first_tx_at ? String(row.first_tx_at) : null,
+      last_tx: row.last_tx_at ? String(row.last_tx_at) : null,
     });
   }
 
-  return map;
+  return paymentMap;
 }
 
 /**
- * Refresh x402 payment data from on-chain logs
- * Scans recent blocks for USDC Transfer events from facilitator addresses
+ * Query x402scan tRPC endpoint
  */
-export async function refreshX402Data(agentWallets: string[] = [], blocksToScan = 100000): Promise<number> {
-  console.log('[x402] Starting refresh, scanning last', blocksToScan, 'blocks');
-  
-  const currentBlock = await baseClient.getBlockNumber();
-  const fromBlock = currentBlock - BigInt(blocksToScan);
-  
-  // Map to store aggregated payment data
-  const paymentMap = new Map<string, {
-    txCount: number;
-    totalVolume: bigint;
-    buyers: Set<string>;
-    firstTx: bigint | null;
-    lastTx: bigint | null;
-  }>();
+async function queryX402Scan(procedure: string, input: any): Promise<any> {
+  const encodedInput = encodeURIComponent(JSON.stringify({ "0": { json: input } }));
+  const url = `${X402SCAN_BASE}/${procedure}?batch=1&input=${encodedInput}`;
 
-  console.log(`[x402] Scanning blocks ${fromBlock} to ${currentBlock}`);
+  const res = await fetch(url, {
+    headers: { 'Accept': 'application/json' },
+    cache: 'no-store',
+  });
 
-  // Query logs per-facilitator in chunks (filter server-side via indexed `from` param)
-  const CHUNK_SIZE = 10000; // Larger chunks since we filter by from address
-  let totalLogsProcessed = 0;
+  if (!res.ok) {
+    throw new Error(`x402scan API error: ${res.status}`);
+  }
 
-  // Process facilitators in batches of 5 (RPC topic arrays)
-  const FAC_BATCH_SIZE = 5;
-  for (let fi = 0; fi < FACILITATORS.length; fi += FAC_BATCH_SIZE) {
-    const facBatch = FACILITATORS.slice(fi, fi + FAC_BATCH_SIZE);
-    
-    for (let start = fromBlock; start < currentBlock; start += BigInt(CHUNK_SIZE)) {
-      const end = start + BigInt(CHUNK_SIZE) > currentBlock ? currentBlock : start + BigInt(CHUNK_SIZE);
-      
-      // Rate limit: delay between queries
-      if (start > fromBlock || fi > 0) {
-        await new Promise((resolve) => setTimeout(resolve, 300));
+  const data = await res.json();
+  if (Array.isArray(data) && data[0]?.result?.data?.json) {
+    return data[0].result.data.json;
+  }
+  if (Array.isArray(data) && data[0]?.error) {
+    throw new Error(`x402scan tRPC error: ${data[0].error.json?.message || 'Unknown'}`);
+  }
+
+  return data;
+}
+
+/**
+ * Get global x402 stats from x402scan
+ */
+export async function getX402GlobalStats(timeframe = 30) {
+  return queryX402Scan('public.stats.overall', { timeframe });
+}
+
+/**
+ * Get top sellers from x402scan
+ */
+export async function getX402TopSellers(timeframe = 30, page = 0, pageSize = 100) {
+  return queryX402Scan('public.sellers.all.list', {
+    timeframe,
+    pagination: { page, page_size: pageSize },
+    sorting: { id: 'total_amount', desc: true },
+  });
+}
+
+/**
+ * Get top buyers from x402scan
+ */
+export async function getX402TopBuyers(timeframe = 30, page = 0, pageSize = 20) {
+  return queryX402Scan('public.buyers.all.list', {
+    timeframe,
+    pagination: { page, page_size: pageSize },
+    sorting: { id: 'total_amount', desc: true },
+  });
+}
+
+/**
+ * Get facilitator list from x402scan
+ */
+export async function getX402Facilitators(timeframe = 30) {
+  return queryX402Scan('public.facilitators.list', {
+    timeframe,
+    pagination: { page: 0, page_size: 50 },
+    sorting: { id: 'tx_count', desc: true },
+  });
+}
+
+/**
+ * Refresh x402 payment data from x402scan tRPC API
+ * Fetches top sellers and upserts into Turso for cross-referencing with ERC-8004 agents
+ */
+export async function refreshX402Data(): Promise<number> {
+  console.log('[x402] Starting refresh from x402scan tRPC API');
+
+  let updatedCount = 0;
+  let page = 0;
+  const pageSize = 100;
+  let hasMore = true;
+
+  // Ensure table exists
+  await turso.execute(`
+    CREATE TABLE IF NOT EXISTS x402_payments (
+      wallet_address TEXT PRIMARY KEY,
+      tx_count INTEGER DEFAULT 0,
+      total_volume_usdc REAL DEFAULT 0,
+      unique_buyers INTEGER DEFAULT 0,
+      first_tx_at TEXT,
+      last_tx_at TEXT,
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+  await turso.execute(`CREATE INDEX IF NOT EXISTS idx_x402_tx_count ON x402_payments(tx_count DESC)`);
+
+  while (hasMore && page < 50) { // Max 50 pages = 5000 sellers
+    try {
+      const data = await getX402TopSellers(30, page, pageSize);
+      const items = data.items || [];
+
+      if (items.length === 0) {
+        hasMore = false;
+        break;
       }
-      
-      try {
-        // Query Transfer events FROM specific facilitator addresses (server-side filter)
-        const logs = await baseClient.getLogs({
-          address: USDC_ADDRESS,
-          event: TRANSFER_EVENT,
-          args: { from: facBatch },
-          fromBlock: start,
-          toBlock: end,
+
+      for (const seller of items) {
+        const address = (seller.recipient || '').toLowerCase();
+        if (!address || address.length < 10) continue;
+
+        const volumeUsdc = Number(seller.total_amount || 0) / 1_000_000;
+        const txCount = Number(seller.tx_count || 0);
+        const uniqueBuyers = Number(seller.unique_buyers || 0);
+        const lastTxAt = seller.latest_block_timestamp || null;
+
+        await turso.execute({
+          sql: `
+            INSERT INTO x402_payments (wallet_address, tx_count, total_volume_usdc, unique_buyers, last_tx_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, datetime('now'))
+            ON CONFLICT(wallet_address) DO UPDATE SET
+              tx_count = excluded.tx_count,
+              total_volume_usdc = excluded.total_volume_usdc,
+              unique_buyers = excluded.unique_buyers,
+              last_tx_at = COALESCE(excluded.last_tx_at, last_tx_at),
+              updated_at = datetime('now')
+          `,
+          args: [address, txCount, volumeUsdc, uniqueBuyers, lastTxAt],
         });
 
-        for (const log of logs) {
-          const { from, to, value } = log.args;
-          if (!from || !to || !value) continue;
-
-          const fromLower = from.toLowerCase();
-          const toLower = to.toLowerCase();
-
-          // Skip transfers back to facilitators or USDC contract itself
-          if (FACILITATORS.includes(toLower as Address)) continue;
-
-          // Track ALL seller wallets (not just ERC-8004 agents)
-          if (!paymentMap.has(toLower)) {
-            paymentMap.set(toLower, {
-              txCount: 0,
-              totalVolume: BigInt(0),
-              buyers: new Set(),
-              firstTx: log.blockNumber,
-              lastTx: log.blockNumber,
-            });
-          }
-
-          const data = paymentMap.get(toLower)!;
-          data.txCount += 1;
-          data.totalVolume += value;
-          data.buyers.add(fromLower);
-          data.firstTx = data.firstTx && data.firstTx < log.blockNumber ? data.firstTx : log.blockNumber;
-          data.lastTx = data.lastTx && data.lastTx > log.blockNumber ? data.lastTx : log.blockNumber;
-
-          totalLogsProcessed++;
-        }
-      } catch (error: any) {
-        console.error(`[x402] Error fetching logs for fac batch ${fi}-${fi+FAC_BATCH_SIZE}, blocks ${start}-${end}:`, error.message);
+        updatedCount++;
       }
-    }
-  }
 
-  console.log(`[x402] Processed ${totalLogsProcessed} transfer events`);
+      console.log(`[x402] Page ${page}: ${items.length} sellers processed`);
 
-  // Upsert results into Turso
-  let updatedCount = 0;
-  for (const [address, data] of paymentMap.entries()) {
-    const volumeUsdc = Number(data.totalVolume) / 1_000_000; // USDC has 6 decimals
-
-    // Get block timestamps for first/last transactions
-    let firstTxAt: string | null = null;
-    let lastTxAt: string | null = null;
-
-    try {
-      if (data.firstTx) {
-        const firstBlock = await baseClient.getBlock({ blockNumber: data.firstTx });
-        firstTxAt = new Date(Number(firstBlock.timestamp) * 1000).toISOString();
+      if (items.length < pageSize) {
+        hasMore = false;
       }
-      if (data.lastTx && data.lastTx !== data.firstTx) {
-        const lastBlock = await baseClient.getBlock({ blockNumber: data.lastTx });
-        lastTxAt = new Date(Number(lastBlock.timestamp) * 1000).toISOString();
-      } else if (data.lastTx === data.firstTx) {
-        lastTxAt = firstTxAt;
-      }
+      page++;
+
+      // Rate limit: 300ms between pages
+      await new Promise(resolve => setTimeout(resolve, 300));
     } catch (error: any) {
-      console.error(`[x402] Error fetching block timestamps for ${address}:`, error.message);
+      console.error(`[x402] Error on page ${page}:`, error.message);
+      hasMore = false;
     }
-
-    await turso.execute({
-      sql: `
-        INSERT INTO x402_payments (wallet_address, tx_count, total_volume_usdc, unique_buyers, first_tx_at, last_tx_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-        ON CONFLICT(wallet_address) DO UPDATE SET
-          tx_count = excluded.tx_count,
-          total_volume_usdc = excluded.total_volume_usdc,
-          unique_buyers = excluded.unique_buyers,
-          first_tx_at = COALESCE(excluded.first_tx_at, first_tx_at),
-          last_tx_at = COALESCE(excluded.last_tx_at, last_tx_at),
-          updated_at = datetime('now')
-      `,
-      args: [address, data.txCount, volumeUsdc, data.buyers.size, firstTxAt, lastTxAt],
-    });
-
-    updatedCount++;
   }
 
-  console.log(`[x402] Updated ${updatedCount} agent payment records`);
+  console.log(`[x402] Refresh complete: ${updatedCount} sellers updated`);
   return updatedCount;
 }
