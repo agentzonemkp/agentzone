@@ -74,7 +74,7 @@ export default function AgentPage({ params }: { params: Promise<{ id: string }> 
   const agentId = decodeURIComponent(id);
   const [data, setData] = useState<AgentDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'overview' | 'reputation' | 'payments' | 'x402'>('overview');
+  const [tab, setTab] = useState<'overview' | 'reputation' | 'payments' | 'x402' | 'validation'>('overview');
 
   useEffect(() => {
     fetch(`/api/v1/agents/${encodeURIComponent(agentId)}`)
@@ -184,7 +184,7 @@ export default function AgentPage({ params }: { params: Promise<{ id: string }> 
 
         {/* Tabs */}
         <div className="flex gap-4 mb-6 border-b border-[#1a1d24]">
-          {(['overview', 'reputation', 'payments', 'x402'] as const).map(t => (
+          {(['overview', 'reputation', 'payments', 'x402', 'validation'] as const).map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -359,6 +359,101 @@ if (response.status === 402) {
                 ))}
               </div>
             )}
+          </div>
+        )}
+        {tab === 'validation' && (
+          <div className="space-y-6">
+            {/* ERC-8004 Identity */}
+            <div className="border border-[#1a1d24] p-5 bg-[#111318]">
+              <div className="text-[0.6rem] uppercase tracking-widest text-[#454b5a] mb-3">ERC-8004 Identity</div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="border border-[#1a1d24] p-4 bg-[#0d0f12]">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`w-2 h-2 rounded-full ${agent.has_erc8004_identity ? 'bg-[#00ff88] shadow-[0_0_6px_#00ff88]' : 'bg-[#454b5a]'}`} />
+                    <span className="text-xs font-bold">{agent.has_erc8004_identity ? 'Verified' : 'Unverified'}</span>
+                  </div>
+                  <div className="text-[0.6rem] text-[#7a8194]">On-chain identity token #{agent.token_id} on {chainName(agent.chain_id)}</div>
+                  <a href={explorerUrl(agent.chain_id, 'token', agent.contract_address) + `?a=${agent.token_id}`}
+                    target="_blank" rel="noopener" className="text-[0.6rem] text-[#00ff88] hover:underline mt-1 inline-block">
+                    View on explorer ↗
+                  </a>
+                </div>
+                <div className="border border-[#1a1d24] p-4 bg-[#0d0f12]">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-2 h-2 rounded-full bg-[#00ff88] shadow-[0_0_6px_#00ff88]" />
+                    <span className="text-xs font-bold">Soulbound</span>
+                  </div>
+                  <div className="text-[0.6rem] text-[#7a8194]">ERC-8004 tokens are non-transferable. This identity is permanently bound to the owner wallet.</div>
+                </div>
+              </div>
+            </div>
+
+            {/* TEE Attestation */}
+            <div className="border border-[#1a1d24] p-5 bg-[#111318]">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-[0.6rem] uppercase tracking-widest text-[#454b5a]">TEE Attestation</div>
+                <span className="text-[0.55rem] px-2 py-0.5 border border-[#ffaa00]/20 text-[#ffaa00] uppercase tracking-wider">Coming Soon</span>
+              </div>
+              <p className="text-xs text-[#7a8194] mb-4">
+                Trusted Execution Environment attestation verifies the agent runs in a secure enclave (Intel SGX, ARM TrustZone, AWS Nitro).
+                Attestation proofs will be anchored on-chain.
+              </p>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: 'Intel SGX', icon: '🔒', status: 'pending' },
+                  { label: 'AWS Nitro', icon: '☁️', status: 'pending' },
+                  { label: 'ARM TrustZone', icon: '🛡️', status: 'pending' },
+                ].map(tee => (
+                  <div key={tee.label} className="border border-[#1a1d24] p-3 bg-[#0d0f12] text-center">
+                    <div className="text-lg mb-1">{tee.icon}</div>
+                    <div className="text-[0.6rem] text-[#454b5a]">{tee.label}</div>
+                    <div className="text-[0.55rem] text-[#7a8194] mt-1">Not attested</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* zkML Verification */}
+            <div className="border border-[#1a1d24] p-5 bg-[#111318]">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-[0.6rem] uppercase tracking-widest text-[#454b5a]">zkML Verification</div>
+                <span className="text-[0.55rem] px-2 py-0.5 border border-[#ffaa00]/20 text-[#ffaa00] uppercase tracking-wider">Coming Soon</span>
+              </div>
+              <p className="text-xs text-[#7a8194] mb-4">
+                Zero-knowledge proofs verify ML model inference without revealing model weights.
+                Supported frameworks: EZKL, RISC Zero, Giza.
+              </p>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: 'EZKL', desc: 'ONNX → ZK circuit', status: 'pending' },
+                  { label: 'RISC Zero', desc: 'General zkVM', status: 'pending' },
+                  { label: 'Giza', desc: 'Cairo ML proofs', status: 'pending' },
+                ].map(zk => (
+                  <div key={zk.label} className="border border-[#1a1d24] p-3 bg-[#0d0f12] text-center">
+                    <div className="text-xs font-bold text-[#00d4ff] mb-1">{zk.label}</div>
+                    <div className="text-[0.55rem] text-[#454b5a]">{zk.desc}</div>
+                    <div className="text-[0.55rem] text-[#7a8194] mt-1">No proof submitted</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Validation API */}
+            <div className="border border-[#1a1d24] p-5 bg-[#111318]">
+              <div className="text-[0.6rem] uppercase tracking-widest text-[#454b5a] mb-3">Submit Validation</div>
+              <p className="text-xs text-[#7a8194] mb-3">
+                Agent operators can submit TEE attestation reports or zkML proofs via the API.
+              </p>
+              <pre className="text-xs font-mono text-[#7a8194] bg-[#0d0f12] p-4 overflow-x-auto whitespace-pre">{`POST /api/v1/agents/{id}/validate
+Content-Type: application/json
+
+{
+  "type": "tee_attestation" | "zkml_proof",
+  "framework": "sgx" | "nitro" | "ezkl" | "risc_zero",
+  "proof": "<base64-encoded attestation or proof>",
+  "metadata": { "model_hash": "...", "enclave_id": "..." }
+}`}</pre>
+            </div>
           </div>
         )}
       </main>

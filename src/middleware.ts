@@ -19,7 +19,10 @@ export async function middleware(req: NextRequest) {
     req.nextUrl.pathname.startsWith('/api/auth') ||
     req.nextUrl.pathname.startsWith('/api/v1/agents') ||
     req.nextUrl.pathname.startsWith('/api/v1/stats') ||
-    req.nextUrl.pathname.startsWith('/api/v1/payments')
+    req.nextUrl.pathname.startsWith('/api/v1/payments') ||
+    req.nextUrl.pathname.startsWith('/api/v1/search') ||
+    req.nextUrl.pathname.startsWith('/api/v1/analytics') ||
+    req.nextUrl.pathname.startsWith('/api/v1/discover')
   ) {
     return NextResponse.next();
   }
