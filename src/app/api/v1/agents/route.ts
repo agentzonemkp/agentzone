@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { graphqlClient, queries } from '@/lib/graphql-client';
 import { createClient } from '@libsql/client';
 import { batchResolveMetadata } from '@/lib/metadata-resolver';
-import { getAllX402PaymentData } from '@/lib/x402-data';
+import { getBatchX402PaymentData } from '@/lib/x402-data';
 
 const turso = createClient({
   url: process.env.DATABASE_URL!,
@@ -74,7 +74,8 @@ export async function GET(request: NextRequest) {
         
         // Enrich search results with x402 payment data
         try {
-          const x402Data = await getAllX402PaymentData();
+          const walletAddrs = agents.map((a: any) => a.wallet_address).filter(Boolean);
+          const x402Data = await getBatchX402PaymentData(walletAddrs);
           for (const agent of agents) {
             const paymentData = x402Data.get(agent.wallet_address?.toLowerCase());
             if (paymentData) {
@@ -154,7 +155,8 @@ export async function GET(request: NextRequest) {
 
     // Enrich with x402 payment data
     try {
-      const x402Data = await getAllX402PaymentData();
+      const walletAddrs = agents.map((a: any) => a.wallet_address).filter(Boolean);
+          const x402Data = await getBatchX402PaymentData(walletAddrs);
       for (const agent of agents) {
         const paymentData = x402Data.get(agent.wallet_address.toLowerCase());
         if (paymentData) {
