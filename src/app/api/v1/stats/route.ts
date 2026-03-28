@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import { graphqlClient } from '@/lib/graphql-client';
+import { createClient } from '@libsql/client';
 import { getX402GlobalStats } from '@/lib/x402-data';
+
+const turso = createClient({
+  url: process.env.DATABASE_URL!,
+  authToken: process.env.DATABASE_AUTH_TOKEN,
+});
 
 // Binary search for total count since Hasura doesn't support COUNT
 async function countEntities(entity: string): Promise<number> {
@@ -21,20 +27,39 @@ async function countEntities(entity: string): Promise<number> {
 
 export async function GET() {
   try {
-    const [totalAgents, totalReputation, x402Stats] = await Promise.all([
+    const [totalERC8004, totalReputation, x402Stats] = await Promise.all([
       countEntities('Agent'),
       countEntities('Reputation'),
       getX402GlobalStats(30).catch(() => null),
     ]);
 
-    // Count agents with metadata (has description)
-    const metaQuery = `{ Agent(where: {description: {_neq: ""}}, limit: 100000) { id } }`;
-    const metaData: any = await graphqlClient.request(metaQuery);
-    const withMetadata = metaData.Agent?.length || 0;
+    // Count verified+active agents (ERC-8004 holders that also have x402 transactions)
+    // Get x402 seller wallets from Turso
+    let verifiedActiveCount = 0;
+    try {
+      const x402Result = await turso.execute(
+        'SELECT wallet_address FROM x402_payments WHERE tx_count > 0'
+      );
+      const x402Wallets = x402Result.rows.map(r => String(r.wallet_address).toLowerCase());
+      
+      // Check which have ERC-8004 identity (batch query)
+      const batchSize = 50;
+      for (let i = 0; i < x402Wallets.length; i += batchSize) {
+        const batch = x402Wallets.slice(i, i + batchSize);
+        try {
+          const data: any = await graphqlClient.request(`
+            query CountOverlap($wallets: [String!]) {
+              Agent(where: {wallet_address: {_in: $wallets}, has_erc8004_identity: {_eq: true}}) { id }
+            }
+          `, { wallets: batch });
+          verifiedActiveCount += (data.Agent || []).length;
+        } catch {}
+      }
+    } catch {}
 
     return NextResponse.json({
-      total_agents: totalAgents,
-      agents_with_metadata: withMetadata,
+      total_erc8004_agents: totalERC8004,
+      verified_active_agents: verifiedActiveCount,
       total_reputation_entries: totalReputation,
       chains: 2,
       chain_names: ['Base', 'Arbitrum'],
@@ -51,9 +76,9 @@ export async function GET() {
     });
   } catch (error: any) {
     return NextResponse.json({
-      total_agents: 35000,
-      agents_with_metadata: 35,
-      total_reputation_entries: 1000,
+      total_erc8004_agents: 38000,
+      verified_active_agents: 0,
+      total_reputation_entries: 0,
       chains: 2,
       chain_names: ['Base', 'Arbitrum'],
       error: error.message,

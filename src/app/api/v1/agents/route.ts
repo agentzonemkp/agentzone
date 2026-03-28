@@ -95,47 +95,68 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Standard list — for ranking sort, fetch agents with reputation first
-    let data: any;
-    if (sort_by === 'ranking' || sort_by === 'reputation') {
-      // Two-pass: first get agents that have reputation, then fill remaining slots
-      const repData: any = await graphqlClient.request(`
-        query RankedAgents {
-          Reputation(order_by: {reputation_score: desc_nulls_last}, limit: 200) {
-            agent_id
-            reputation_score
-            feedback_count
-          }
-        }
-      `);
-      const repEntries = repData.Reputation || [];
-      const uniqueAgentIds = [...new Set(repEntries.map((r: any) => r.agent_id))].slice(0, limit);
-      
-      if (uniqueAgentIds.length > 0) {
-        const agentData: any = await graphqlClient.request(`
-          query AgentsByIds($ids: [String!]) {
-            Agent(where: {id: {_in: $ids}}) {
+    // APPROACH: Start from x402 sellers (wallets with real transactions),
+    // then check which have ERC-8004 identity. Only the intersection gets listed.
+    
+    // Step 1: Get all x402 sellers with transactions from Turso
+    const x402Result = await turso.execute(
+      'SELECT * FROM x402_payments WHERE tx_count > 0 ORDER BY total_volume_usdc DESC'
+    );
+    const x402Wallets = x402Result.rows.map(r => String(r.wallet_address).toLowerCase());
+    const x402Map = new Map<string, any>();
+    for (const row of x402Result.rows) {
+      x402Map.set(String(row.wallet_address).toLowerCase(), row);
+    }
+
+    // Step 2: Check which x402 wallets have ERC-8004 identity via GraphQL
+    // Query in batches (GraphQL _in has limits)
+    let agents: any[] = [];
+    const batchSize = 50;
+    for (let i = 0; i < x402Wallets.length; i += batchSize) {
+      const batch = x402Wallets.slice(i, i + batchSize);
+      try {
+        const data: any = await graphqlClient.request(`
+          query FindVerifiedSellers($wallets: [String!]) {
+            Agent(where: {wallet_address: {_in: $wallets}, has_erc8004_identity: {_eq: true}}) {
               id wallet_address chain_id token_id name description category
               has_erc8004_identity verified trust_score success_rate
               total_revenue_usdc transaction_count unique_customers
               revenue_30d tx_count_30d base_price_usdc avg_response_time_ms
-              rank_trust created_at last_active_at
+              rank_trust created_at last_active_at original_minter
               reputation { reputation_score feedback_count client_address }
             }
           }
-        `, { ids: uniqueAgentIds });
-        data = agentData;
-      } else {
-        const query = verified_only ? queries.getVerifiedAgents : queries.getAgents;
-        data = await graphqlClient.request(query, { limit, offset });
+        `, { wallets: batch });
+        const found = (data.Agent || []).map(mapAgent);
+        agents.push(...found);
+      } catch (e: any) {
+        console.error(`[agents] GraphQL batch ${i} failed:`, e.message);
       }
-    } else {
-      const query = verified_only ? queries.getVerifiedAgents : queries.getAgents;
-      data = await graphqlClient.request(query, { limit, offset });
     }
-    let agents = (data.Agent || []).map(mapAgent);
 
-    // Enrich agents that have generic names with on-chain metadata
+    // Step 3: Deduplicate (same wallet might have multiple tokens across chains)
+    const seen = new Set<string>();
+    agents = agents.filter(a => {
+      const key = a.wallet_address?.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    // Step 4: Overlay x402 transaction data onto ERC-8004 agents
+    for (const agent of agents) {
+      const x402 = x402Map.get(agent.wallet_address?.toLowerCase());
+      if (x402) {
+        agent.transaction_count = Number(x402.tx_count) || 0;
+        agent.total_revenue_usdc = Number(x402.total_volume_usdc) || 0;
+        agent.unique_customers = Number(x402.unique_buyers) || 0;
+        agent.revenue_30d = Number(x402.total_volume_usdc) || 0;
+        agent.tx_count_30d = Number(x402.tx_count) || 0;
+        agent.last_active_at = x402.last_tx_at ? String(x402.last_tx_at) : agent.last_active_at;
+      }
+    }
+
+    // Step 5: Enrich generic names with on-chain metadata
     const needsEnrich = agents.filter((a: any) => {
       const n = a.name || '';
       return !n || /^Agent \d+$/.test(n) || (n.startsWith('0x') && n.length > 10);
@@ -153,75 +174,10 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Enrich ERC-8004 agents with x402 payment data
-    try {
-      const walletAddrs = agents.map((a: any) => a.wallet_address).filter(Boolean);
-      const x402Data = await getBatchX402PaymentData(walletAddrs);
-      for (const agent of agents) {
-        const paymentData = x402Data.get(agent.wallet_address?.toLowerCase());
-        if (paymentData) {
-          agent.transaction_count = paymentData.tx_count;
-          agent.total_revenue_usdc = paymentData.total_volume_usdc;
-          agent.unique_customers = paymentData.unique_buyers;
-          agent.last_active_at = paymentData.last_tx || agent.last_active_at;
-        }
-      }
-    } catch (error: any) {
-      console.error('[agents] Error enriching with x402 data:', error.message);
-    }
-
-    // Merge top x402 sellers as "discovered" agents (not yet ERC-8004 registered)
-    try {
-      const existingAddrs = new Set(agents.map((a: any) => a.wallet_address?.toLowerCase()).filter(Boolean));
-      const x402Sellers = await turso.execute(
-        'SELECT * FROM x402_payments WHERE tx_count > 0 ORDER BY total_volume_usdc DESC LIMIT 200'
-      );
-      for (const row of x402Sellers.rows) {
-        const addr = String(row.wallet_address);
-        if (existingAddrs.has(addr)) continue;
-        // Skip Solana addresses for now (non-0x)
-        if (!addr.startsWith('0x')) continue;
-        agents.push({
-          id: addr,
-          wallet_address: addr,
-          chain_id: 8453,
-          token_id: null,
-          name: `${addr.slice(0, 6)}...${addr.slice(-4)}`,
-          description: 'Discovered via x402 payment activity',
-          category: 'x402-seller',
-          has_erc8004_identity: false,
-          verified: false,
-          trust_score: 0,
-          success_rate: 0,
-          total_revenue_usdc: Number(row.total_volume_usdc) || 0,
-          transaction_count: Number(row.tx_count) || 0,
-          unique_customers: Number(row.unique_buyers) || 0,
-          revenue_30d: Number(row.total_volume_usdc) || 0,
-          tx_count_30d: Number(row.tx_count) || 0,
-          base_price_usdc: 0,
-          avg_response_time_ms: 0,
-          rank_trust: 0,
-          last_active_at: row.last_tx_at ? String(row.last_tx_at) : '',
-          avg_reputation: 0,
-          total_feedback: 0,
-        });
-      }
-    } catch (error: any) {
-      console.error('[agents] Error merging x402 sellers:', error.message);
-    }
-
     // Filter by min trust score
     if (min_trust_score > 0) {
       agents = agents.filter((a: any) => a.trust_score >= min_trust_score);
     }
-
-    // Only list agents with real activity — must have reputation OR transactions
-    // Pure registrations with zero activity are noise
-    agents = agents.filter((a: any) => {
-      const hasReputation = (a.avg_reputation || 0) > 0 || (a.total_feedback || 0) > 0;
-      const hasTransactions = (a.transaction_count || 0) > 0;
-      return hasReputation || hasTransactions;
-    });
 
     // Sort — default: composite rank (reputation × usage), otherwise by specified field
     // Ranking formula: weighted composite of reputation, x402 transactions, feedback count, and trust

@@ -64,10 +64,10 @@ export interface Payment {
 }
 
 export const queries = {
-  // Get agents that have reputation (active agents only)
+  // Get all ERC-8004 agents — filtering happens after x402 enrichment
   getAgents: `
     query GetAgents($limit: Int, $offset: Int) {
-      Agent(limit: $limit, offset: $offset, order_by: [{trust_score: desc_nulls_last}], where: {reputation: {}}) {
+      Agent(limit: $limit, offset: $offset, order_by: [{trust_score: desc_nulls_last}], where: {has_erc8004_identity: {_eq: true}}) {
         id
         wallet_address
         chain_id
