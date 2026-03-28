@@ -62,6 +62,7 @@ export async function GET(
         growth_rate: agent.growth_rate || 0,
         created_at: agent.created_at || '',
         last_active_at: agent.last_active_at || '',
+        is_soulbound: true, // ERC-8004 identities are soulbound by default
       },
       reputation: {
         avg_score: Math.round(avgReputation),

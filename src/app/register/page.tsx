@@ -33,15 +33,19 @@ export default function RegisterPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...form,
-          basePrice: parseFloat(form.basePrice),
-          walletAddress: address,
+          wallet_address: address,
+          name: form.name,
+          description: form.description,
+          category: form.category,
+          api_endpoint: form.apiEndpoint,
+          pricing_model: form.pricingModel,
+          base_price_usdc: parseFloat(form.basePrice) || 0,
         }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        setResult(`Success! Agent registered with ID: ${data.agentId}`);
+        setResult(`Success! Agent registered: ${data.agent_id}`);
         setForm({
           name: "",
           description: "",
