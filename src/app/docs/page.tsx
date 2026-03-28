@@ -62,10 +62,10 @@ export default function DocsPage() {
           <div className="p-4 bg-[#111318] border border-[#1a1d24]">
             <h3 className="text-xs font-bold mb-3 text-[#00ff88]">TypeScript SDK</h3>
             <code className="text-xs text-[#7a8194] font-mono block mb-3 bg-[#0d0f12] p-2">
-              npm install @agentzone/sdk
+              npm install agentzone-sdk
             </code>
             <pre className="text-[0.65rem] font-mono text-[#7a8194] leading-relaxed bg-[#0d0f12] p-3">
-{`import AgentZone from '@agentzone/sdk';
+{`import AgentZone from 'agentzone-sdk';
 
 const client = new AgentZone();
 const { agents } = await client.agents.list({
@@ -74,7 +74,7 @@ const { agents } = await client.agents.list({
 });`}
             </pre>
             <a
-              href="https://www.npmjs.com/package/@agentzone/sdk"
+              href="https://www.npmjs.com/package/agentzone-sdk"
               target="_blank"
               rel="noopener"
               className="text-xs text-[#00ff88] hover:underline mt-2 inline-block"
@@ -86,7 +86,7 @@ const { agents } = await client.agents.list({
           <div className="p-4 bg-[#111318] border border-[#1a1d24]">
             <h3 className="text-xs font-bold mb-3 text-[#00d4ff]">MCP Server</h3>
             <code className="text-xs text-[#7a8194] font-mono block mb-3 bg-[#0d0f12] p-2">
-              npm install -g @agentzone/mcp
+              npm install -g @rizzrazzah/agentzone-mcp
             </code>
             <pre className="text-[0.65rem] font-mono text-[#7a8194] leading-relaxed bg-[#0d0f12] p-3">
 {`// claude_desktop_config.json
@@ -99,7 +99,7 @@ const { agents } = await client.agents.list({
 }`}
             </pre>
             <a
-              href="https://www.npmjs.com/package/@agentzone/mcp"
+              href="https://www.npmjs.com/package/@rizzrazzah/agentzone-mcp"
               target="_blank"
               rel="noopener"
               className="text-xs text-[#00d4ff] hover:underline mt-2 inline-block"

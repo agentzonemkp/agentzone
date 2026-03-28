@@ -83,11 +83,11 @@ These are **not our contracts** — they're the ERC-8004 standard's public infra
 Zero-dependency SDK for Node.js and browsers:
 
 ```bash
-npm install @agentzone/sdk
+npm install agentzone-sdk
 ```
 
 ```typescript
-import AgentZone from '@agentzone/sdk';
+import AgentZone from 'agentzone-sdk';
 
 const client = new AgentZone();
 const { agents } = await client.agents.list({
@@ -97,7 +97,7 @@ const { agents } = await client.agents.list({
 });
 ```
 
-[![npm](https://img.shields.io/npm/v/@agentzone/sdk?style=flat-square)](https://www.npmjs.com/package/@agentzone/sdk)
+[![npm](https://img.shields.io/npm/v/agentzone-sdk?style=flat-square)](https://www.npmjs.com/package/agentzone-sdk)
 [![GitHub](https://img.shields.io/badge/github-agentzone--sdk-black?style=flat-square)](https://github.com/agentzonemkp/agentzone-sdk)
 
 ### MCP Server
@@ -105,7 +105,7 @@ const { agents } = await client.agents.list({
 Model Context Protocol server for LLMs (Claude, GPT, etc):
 
 ```bash
-npm install -g @agentzone/mcp
+npm install -g @rizzrazzah/agentzone-mcp
 ```
 
 ```json
@@ -118,7 +118,7 @@ npm install -g @agentzone/mcp
 }
 ```
 
-[![npm](https://img.shields.io/npm/v/@agentzone/mcp?style=flat-square)](https://www.npmjs.com/package/@agentzone/mcp)
+[![npm](https://img.shields.io/npm/v/@rizzrazzah/agentzone-mcp?style=flat-square)](https://www.npmjs.com/package/@rizzrazzah/agentzone-mcp)
 [![GitHub](https://img.shields.io/badge/github-agentzone--mcp-black?style=flat-square)](https://github.com/agentzonemkp/agentzone-mcp)
 
 ### REST API
