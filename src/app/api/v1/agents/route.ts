@@ -139,20 +139,36 @@ export async function GET(request: NextRequest) {
       agents = agents.filter((a: any) => a.trust_score >= min_trust_score);
     }
 
-    // Sort — default: compound rank (reputation + usage), otherwise by specified field
+    // Sort — default: composite rank (reputation × usage), otherwise by specified field
+    // Ranking formula: weighted composite of reputation, x402 transactions, feedback count, and trust
+    // Agents with zero transactions get a significant penalty — reputation alone isn't enough
+    const computeRankScore = (a: any) => {
+      const rep = a.avg_reputation || 0;
+      const txCount = a.transaction_count || 0;
+      const feedbackCount = a.total_feedback || 0;
+      const trust = a.trust_score || 0;
+
+      // Normalize reputation to 0-100 scale (scores can be 0-5000+)
+      const repNorm = Math.min(rep / 50, 100);
+      // Transaction activity (log scale — 1 tx = 0, 10 = 23, 100 = 46, 1000 = 69)
+      const txScore = txCount > 0 ? Math.log10(txCount) * 23 : 0;
+      // Feedback diversity (more unique reviewers = more credible)
+      const feedbackScore = Math.min(feedbackCount * 10, 50);
+      // Trust baseline
+      const trustNorm = trust;
+
+      // Composite: 30% reputation + 35% transactions + 15% feedback diversity + 20% trust
+      // Agents with zero transactions cap at 45/100 max (rep + feedback only)
+      return (repNorm * 0.30) + (txScore * 0.35) + (feedbackScore * 0.15) + (trustNorm * 0.20);
+    };
+
     if (sort_by === 'transaction_count') {
       agents.sort((a: any, b: any) => (b.transaction_count || 0) - (a.transaction_count || 0));
     } else if (sort_by === 'reputation') {
       agents.sort((a: any, b: any) => (b.avg_reputation || 0) - (a.avg_reputation || 0));
     } else {
-      // Default compound sort: reputation desc → transaction_count desc → trust_score desc
-      agents.sort((a: any, b: any) => {
-        const repDiff = (b.avg_reputation || 0) - (a.avg_reputation || 0);
-        if (repDiff !== 0) return repDiff;
-        const txDiff = (b.transaction_count || 0) - (a.transaction_count || 0);
-        if (txDiff !== 0) return txDiff;
-        return (b.trust_score || 0) - (a.trust_score || 0);
-      });
+      // Default: composite rank score
+      agents.sort((a: any, b: any) => computeRankScore(b) - computeRankScore(a));
     }
 
     return NextResponse.json({
