@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import Link from "next/link";
 import { use } from "react";
+import { useSearchParams } from "next/navigation";
 
 interface AgentDetail {
   agent: {
@@ -16,6 +17,7 @@ interface AgentDetail {
     description: string;
     category: string;
     has_erc8004_identity: boolean;
+    has_x402: boolean;
     verified: boolean;
     trust_score: number;
     success_rate: number;
@@ -34,6 +36,10 @@ interface AgentDetail {
     growth_rate: number;
     created_at: string;
     last_active_at: string;
+    image: string;
+    external_url: string;
+    services: Array<{ url: string; name?: string; description?: string }>;
+    is_soulbound: boolean;
   };
   reputation: {
     avg_score: number;
@@ -53,6 +59,13 @@ interface AgentDetail {
     status: string;
     timestamp: string;
   }>;
+  x402: {
+    tx_count: number;
+    total_volume_usdc: number;
+    unique_buyers: number;
+    first_tx: string | null;
+    last_tx: string | null;
+  } | null;
 }
 
 function shortAddr(addr: string) {
@@ -72,9 +85,13 @@ function explorerUrl(chainId: number, type: 'address' | 'tx' | 'token', value: s
 export default function AgentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const agentId = decodeURIComponent(id);
+  const searchParams = useSearchParams();
+  const validTabs = ['overview', 'reputation', 'payments', 'x402', 'validation'] as const;
+  type Tab = typeof validTabs[number];
+  const initialTab = validTabs.includes(searchParams.get('tab') as Tab) ? (searchParams.get('tab') as Tab) : 'overview';
   const [data, setData] = useState<AgentDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'overview' | 'reputation' | 'payments' | 'x402' | 'validation'>('overview');
+  const [tab, setTab] = useState<Tab>(initialTab);
 
   useEffect(() => {
     fetch(`/api/v1/agents/${encodeURIComponent(agentId)}`)
@@ -100,7 +117,7 @@ export default function AgentPage({ params }: { params: Promise<{ id: string }> 
     );
   }
 
-  const { agent, reputation, payments } = data;
+  const { agent, reputation, payments, x402 } = data;
 
   return (
     <div className="min-h-screen bg-[#07080a] text-[#e8eaed]">
@@ -125,13 +142,13 @@ export default function AgentPage({ params }: { params: Promise<{ id: string }> 
 
         {/* Agent Header */}
         <div className="border border-[#1a1d24] mb-8">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[#1a1d24] bg-[#0d0f12]">
-            <div className="flex items-center gap-3">
-              <span className="text-xl">⬡</span>
-              <span className="font-bold text-lg">{agent.name}</span>
-              <span className="text-[0.65rem] text-[#454b5a] font-mono">#{agent.token_id}</span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 sm:px-6 py-4 border-b border-[#1a1d24] bg-[#0d0f12] gap-2">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="text-xl shrink-0">⬡</span>
+              <span className="font-bold text-lg truncate">{agent.name}</span>
+              <span className="text-[0.65rem] text-[#454b5a] font-mono shrink-0">#{agent.token_id}</span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <span className="text-[0.6rem] px-2 py-0.5 border border-[#1a1d24] text-[#7a8194] uppercase tracking-wider">
                 {chainName(agent.chain_id)}
               </span>
@@ -141,6 +158,11 @@ export default function AgentPage({ params }: { params: Promise<{ id: string }> 
               {agent.has_erc8004_identity && (
                 <span className="text-[0.6rem] px-2 py-0.5 border border-[#00ff88]/20 text-[#00ff88] uppercase tracking-wider">
                   ERC-8004
+                </span>
+              )}
+              {agent.has_x402 && (
+                <span className="text-[0.6rem] px-2 py-0.5 border border-[#3b82f6]/20 text-[#3b82f6] uppercase tracking-wider">
+                  x402
                 </span>
               )}
             </div>
@@ -162,18 +184,18 @@ export default function AgentPage({ params }: { params: Promise<{ id: string }> 
             </div>
             <div className="bg-[#111318] p-5">
               <div className="text-[0.6rem] uppercase tracking-widest text-[#454b5a] mb-2">Transactions</div>
-              <div className="text-2xl font-bold">{agent.transaction_count}</div>
-              <div className="text-[0.7rem] text-[#7a8194] mt-1">{agent.unique_customers} customers</div>
+              <div className="text-2xl font-bold">{(agent.transaction_count || 0).toLocaleString()}</div>
+              <div className="text-[0.7rem] text-[#7a8194] mt-1">{(agent.unique_customers || 0).toLocaleString()} customers</div>
             </div>
             <div className="bg-[#111318] p-5">
-              <div className="text-[0.6rem] uppercase tracking-widest text-[#454b5a] mb-2">Revenue</div>
-              <div className="text-2xl font-bold">${agent.total_revenue_usdc.toFixed(2)}</div>
-              <div className="text-[0.7rem] text-[#7a8194] mt-1">${agent.revenue_30d.toFixed(2)} (30d)</div>
+              <div className="text-[0.6rem] uppercase tracking-widest text-[#454b5a] mb-2">Volume</div>
+              <div className="text-2xl font-bold">${(agent.total_revenue_usdc || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+              <div className="text-[0.7rem] text-[#7a8194] mt-1">USDC</div>
             </div>
           </div>
 
           {/* Owner + Contract */}
-          <div className="border-t border-[#1a1d24] px-6 py-3 bg-[#0d0f12] flex items-center justify-between text-[0.7rem] text-[#454b5a] font-mono">
+          <div className="border-t border-[#1a1d24] px-4 sm:px-6 py-3 bg-[#0d0f12] flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[0.65rem] sm:text-[0.7rem] text-[#454b5a] font-mono">
             <a href={explorerUrl(agent.chain_id, 'address', agent.wallet_address)} target="_blank" rel="noopener" className="hover:text-[#00ff88]">
               Owner: {shortAddr(agent.wallet_address)} ↗
             </a>
@@ -253,13 +275,35 @@ export default function AgentPage({ params }: { params: Promise<{ id: string }> 
 
         {tab === 'x402' && (
           <div className="space-y-6">
+            {/* x402 Stats */}
+            {x402 && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-[1px] bg-[#1a1d24] border border-[#1a1d24]">
+                <div className="bg-[#111318] p-4">
+                  <div className="text-[0.6rem] uppercase tracking-widest text-[#454b5a] mb-2">Transactions</div>
+                  <div className="text-2xl font-bold text-[#3b82f6]">{x402.tx_count.toLocaleString()}</div>
+                </div>
+                <div className="bg-[#111318] p-4">
+                  <div className="text-[0.6rem] uppercase tracking-widest text-[#454b5a] mb-2">Volume</div>
+                  <div className="text-2xl font-bold text-[#00ff88]">${x402.total_volume_usdc.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                </div>
+                <div className="bg-[#111318] p-4">
+                  <div className="text-[0.6rem] uppercase tracking-widest text-[#454b5a] mb-2">Unique Buyers</div>
+                  <div className="text-2xl font-bold">{x402.unique_buyers.toLocaleString()}</div>
+                </div>
+                <div className="bg-[#111318] p-4">
+                  <div className="text-[0.6rem] uppercase tracking-widest text-[#454b5a] mb-2">Last Active</div>
+                  <div className="text-sm font-bold text-[#7a8194]">{x402.last_tx ? new Date(x402.last_tx).toLocaleDateString() : '—'}</div>
+                </div>
+              </div>
+            )}
+
             <div className="border border-[#1a1d24] p-5 bg-[#111318]">
               <div className="text-[0.6rem] uppercase tracking-widest text-[#454b5a] mb-3">x402 Payment Protocol</div>
               <p className="text-sm text-[#7a8194] mb-4">
                 x402 enables HTTP-native payments. Agents expose paid endpoints that return <code className="text-[#00d4ff] bg-[#0d0f12] px-1 py-0.5">402 Payment Required</code> with
                 payment details. Clients pay via USDC on Base, then retry with proof.
               </p>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="border border-[#1a1d24] p-4 bg-[#0d0f12]">
                   <div className="text-[0.55rem] uppercase tracking-widest text-[#454b5a] mb-2">Agent Wallet</div>
                   <a href={explorerUrl(agent.chain_id, 'address', agent.wallet_address)} target="_blank" rel="noopener"
@@ -270,7 +314,7 @@ export default function AgentPage({ params }: { params: Promise<{ id: string }> 
                 <div className="border border-[#1a1d24] p-4 bg-[#0d0f12]">
                   <div className="text-[0.55rem] uppercase tracking-widest text-[#454b5a] mb-2">Payment Token</div>
                   <div className="text-xs font-mono text-[#00d4ff]">USDC (Base)</div>
-                  <div className="text-[0.6rem] text-[#454b5a] mt-1">0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913</div>
+                  <div className="text-[0.6rem] text-[#454b5a] mt-1 break-all">0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913</div>
                 </div>
               </div>
             </div>

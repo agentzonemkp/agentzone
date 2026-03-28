@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { graphqlClient, queries } from '@/lib/graphql-client';
 import { resolveMetadata } from '@/lib/metadata-resolver';
+import { getX402PaymentData } from '@/lib/x402-data';
+import { createClient } from '@libsql/client';
+
+const turso = createClient({
+  url: process.env.DATABASE_URL!,
+  authToken: process.env.DATABASE_AUTH_TOKEN!,
+});
 
 function hexToString(hex: string): string {
   if (!hex || hex === '0x' || !hex.startsWith('0x')) return hex || '';
@@ -20,19 +27,66 @@ export async function GET(
   const agentId = decodeURIComponent(id);
 
   try {
-    const data: any = await graphqlClient.request(queries.getAgent, { id: agentId });
-    const agents = data.Agent || [];
+    // Try GraphQL first
+    let agent: any = null;
+    let reputations: any[] = [];
+    let payments: any[] = [];
+    let source = 'graphql';
 
-    if (agents.length === 0) {
+    try {
+      const data: any = await graphqlClient.request(queries.getAgent, { id: agentId });
+      const agents = data.Agent || [];
+      if (agents.length > 0) {
+        agent = agents[0];
+        reputations = agent.reputation || [];
+        payments = agent.payments || [];
+      }
+    } catch (gqlErr: any) {
+      console.error('[API] GraphQL error, trying Turso:', gqlErr.message);
+    }
+
+    // Fallback: try Turso agents_unified by wallet address or id
+    if (!agent) {
+      source = 'turso';
+      const result = await turso.execute({
+        sql: `SELECT * FROM agents_unified WHERE wallet_address = ? OR id = ? LIMIT 1`,
+        args: [agentId.toLowerCase(), agentId],
+      });
+      if (result.rows.length > 0) {
+        const row = result.rows[0];
+        agent = {
+          id: String(row.wallet_address || row.id),
+          wallet_address: String(row.wallet_address),
+          chain_id: Number(row.chain_id) || 8453,
+          contract_address: '0x8004A169FB4a3325136EB29fA0ceB6D2e539a432',
+          token_id: String(row.token_id || ''),
+          name: String(row.name || ''),
+          description: String(row.description || ''),
+          category: String(row.category || ''),
+          has_erc8004_identity: Boolean(row.has_erc8004_identity),
+          trust_score: Number(row.trust_score) || 0,
+          total_revenue_usdc: Number(row.total_revenue_usdc) || 0,
+          transaction_count: Number(row.transaction_count) || 0,
+          avg_reputation: Number(row.avg_reputation) || 0,
+          total_feedback: Number(row.total_feedback) || 0,
+          has_x402: Boolean(row.has_x402),
+          x402_tx_count: Number(row.x402_tx_count) || 0,
+          x402_volume: Number(row.x402_volume) || 0,
+          x402_buyers: Number(row.x402_buyers) || 0,
+        };
+      }
+    }
+
+    if (!agent) {
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
     }
 
-    const agent = agents[0];
-    const reputations = agent.reputation || [];
     const avgReputation = reputations.length > 0
       ? reputations.reduce((sum: number, r: any) => sum + (r.reputation_score || 0), 0) / reputations.length
-      : 0;
-    const totalFeedback = reputations.reduce((sum: number, r: any) => sum + (r.feedback_count || 0), 0);
+      : (agent.avg_reputation || 0);
+    const totalFeedback = reputations.length > 0
+      ? reputations.reduce((sum: number, r: any) => sum + (r.feedback_count || 0), 0)
+      : (agent.total_feedback || 0);
 
     // Resolve on-chain metadata if name is generic
     let resolvedName = decodeField(agent.name);
@@ -44,38 +98,53 @@ export async function GET(
     let resolvedServices: any[] = [];
 
     if (!resolvedName || /^Agent \d+$/.test(resolvedName) || resolvedName.startsWith('0x')) {
-      const meta = await resolveMetadata(agent.chain_id || 8453, agent.token_id);
-      if (meta) {
-        resolvedName = meta.name || resolvedName;
-        resolvedDesc = meta.description || resolvedDesc;
-        resolvedCategory = meta.category || resolvedCategory;
-        resolvedEndpoint = meta.services?.[0]?.url || resolvedEndpoint;
-        resolvedImage = meta.image || '';
-        resolvedUrl = meta.external_url || '';
-        resolvedServices = meta.services || [];
-      }
+      try {
+        const meta = await resolveMetadata(agent.chain_id || 8453, agent.token_id);
+        if (meta) {
+          resolvedName = meta.name || resolvedName;
+          resolvedDesc = meta.description || resolvedDesc;
+          resolvedCategory = meta.category || resolvedCategory;
+          resolvedEndpoint = meta.services?.[0]?.url || resolvedEndpoint;
+          resolvedImage = meta.image || '';
+          resolvedUrl = meta.external_url || '';
+          resolvedServices = meta.services || [];
+        }
+      } catch {}
     }
+
+    // Get x402 payment data
+    const walletAddr = agent.wallet_address || agentId;
+    let x402Data = null;
+    try {
+      x402Data = await getX402PaymentData(walletAddr);
+    } catch {}
+
+    const hasX402 = agent.has_x402 || (x402Data && x402Data.tx_count > 0);
+    const txCount = (x402Data?.tx_count || agent.x402_tx_count || agent.transaction_count || 0);
+    const volume = (x402Data?.total_volume_usdc || agent.x402_volume || agent.total_revenue_usdc || 0);
+    const buyers = (x402Data?.unique_buyers || agent.x402_buyers || agent.unique_customers || 0);
 
     return NextResponse.json({
       agent: {
         id: agent.id,
-        wallet_address: agent.wallet_address,
-        chain_id: agent.chain_id,
-        contract_address: agent.contract_address,
-        token_id: agent.token_id,
-        name: resolvedName || `Agent #${agent.token_id}`,
+        wallet_address: walletAddr,
+        chain_id: agent.chain_id || 8453,
+        contract_address: agent.contract_address || '0x8004A169FB4a3325136EB29fA0ceB6D2e539a432',
+        token_id: agent.token_id || '',
+        name: resolvedName || `Agent #${agent.token_id || 'Unknown'}`,
         description: resolvedDesc,
         category: resolvedCategory,
         image: resolvedImage,
         external_url: resolvedUrl,
         services: resolvedServices,
-        has_erc8004_identity: agent.has_erc8004_identity,
-        verified: agent.verified || agent.has_erc8004_identity,
+        has_erc8004_identity: agent.has_erc8004_identity || false,
+        has_x402: hasX402 || false,
+        verified: agent.verified || agent.has_erc8004_identity || false,
         trust_score: agent.trust_score || 0,
         success_rate: agent.success_rate || 0,
-        total_revenue_usdc: agent.total_revenue_usdc || 0,
-        transaction_count: agent.transaction_count || 0,
-        unique_customers: agent.unique_customers || 0,
+        total_revenue_usdc: volume,
+        transaction_count: txCount,
+        unique_customers: buyers,
         revenue_30d: agent.revenue_30d || 0,
         tx_count_30d: agent.tx_count_30d || 0,
         base_price_usdc: agent.base_price_usdc || 0,
@@ -87,8 +156,8 @@ export async function GET(
         rank_trust: agent.rank_trust || 0,
         growth_rate: agent.growth_rate || 0,
         created_at: agent.created_at || '',
-        last_active_at: agent.last_active_at || '',
-        is_soulbound: true, // ERC-8004 identities are soulbound by default
+        last_active_at: x402Data?.last_tx || agent.last_active_at || '',
+        is_soulbound: true,
       },
       reputation: {
         avg_score: Math.round(avgReputation),
@@ -99,7 +168,7 @@ export async function GET(
           feedback_count: r.feedback_count,
         })),
       },
-      payments: (agent.payments || []).map((p: any) => ({
+      payments: payments.map((p: any) => ({
         id: p.id,
         tx_hash: p.tx_hash,
         customer: p.customer_address,
@@ -108,7 +177,14 @@ export async function GET(
         status: p.status,
         timestamp: p.timestamp,
       })),
-      source: 'graphql',
+      x402: x402Data ? {
+        tx_count: x402Data.tx_count,
+        total_volume_usdc: x402Data.total_volume_usdc,
+        unique_buyers: x402Data.unique_buyers,
+        first_tx: x402Data.first_tx,
+        last_tx: x402Data.last_tx,
+      } : null,
+      source,
     });
   } catch (error: any) {
     console.error('[API] Error fetching agent:', error.message);
