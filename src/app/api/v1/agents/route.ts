@@ -76,9 +76,39 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Standard list
-    const query = verified_only ? queries.getVerifiedAgents : queries.getAgents;
-    const data: any = await graphqlClient.request(query, { limit, offset });
+    // Standard list — for ranking sort, fetch agents with reputation first
+    let data: any;
+    if (sort_by === 'ranking' || sort_by === 'reputation') {
+      // Two-pass: first get agents that have reputation, then fill remaining slots
+      const repData: any = await graphqlClient.request(`
+        query RankedAgents($limit: Int) {
+          Reputation(order_by: {reputation_score: desc_nulls_last}, limit: 200) {
+            agent_id
+            reputation_score
+            feedback_count
+          }
+        }
+      `, { limit: 200 });
+      const repEntries = repData.Reputation || [];
+      const uniqueAgentIds = [...new Set(repEntries.map((r: any) => r.agent_id))].slice(0, limit);
+      
+      if (uniqueAgentIds.length > 0) {
+        const agentData: any = await graphqlClient.request(`
+          query AgentsByIds($ids: [String!]) {
+            Agent(where: {id: {_in: $ids}}) {
+              ${queries.getAgents.match(/Agent\(.*?\)\s*\{([\s\S]*?)\}\s*\}/)?.[1] || 'id name wallet_address chain_id token_id trust_score transaction_count reputation { reputation_score feedback_count client_address }'}
+            }
+          }
+        `, { ids: uniqueAgentIds });
+        data = agentData;
+      } else {
+        const query = verified_only ? queries.getVerifiedAgents : queries.getAgents;
+        data = await graphqlClient.request(query, { limit, offset });
+      }
+    } else {
+      const query = verified_only ? queries.getVerifiedAgents : queries.getAgents;
+      data = await graphqlClient.request(query, { limit, offset });
+    }
     let agents = (data.Agent || []).map(mapAgent);
 
     // Enrich agents that have generic names with on-chain metadata
