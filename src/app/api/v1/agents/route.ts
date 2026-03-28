@@ -153,12 +153,12 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Enrich with x402 payment data
+    // Enrich ERC-8004 agents with x402 payment data
     try {
       const walletAddrs = agents.map((a: any) => a.wallet_address).filter(Boolean);
-          const x402Data = await getBatchX402PaymentData(walletAddrs);
+      const x402Data = await getBatchX402PaymentData(walletAddrs);
       for (const agent of agents) {
-        const paymentData = x402Data.get(agent.wallet_address.toLowerCase());
+        const paymentData = x402Data.get(agent.wallet_address?.toLowerCase());
         if (paymentData) {
           agent.transaction_count = paymentData.tx_count;
           agent.total_revenue_usdc = paymentData.total_volume_usdc;
@@ -168,7 +168,46 @@ export async function GET(request: NextRequest) {
       }
     } catch (error: any) {
       console.error('[agents] Error enriching with x402 data:', error.message);
-      // Continue without x402 data if it fails
+    }
+
+    // Merge top x402 sellers as "discovered" agents (not yet ERC-8004 registered)
+    try {
+      const existingAddrs = new Set(agents.map((a: any) => a.wallet_address?.toLowerCase()).filter(Boolean));
+      const x402Sellers = await turso.execute(
+        'SELECT * FROM x402_payments WHERE tx_count > 0 ORDER BY total_volume_usdc DESC LIMIT 200'
+      );
+      for (const row of x402Sellers.rows) {
+        const addr = String(row.wallet_address);
+        if (existingAddrs.has(addr)) continue;
+        // Skip Solana addresses for now (non-0x)
+        if (!addr.startsWith('0x')) continue;
+        agents.push({
+          id: addr,
+          wallet_address: addr,
+          chain_id: 8453,
+          token_id: null,
+          name: `${addr.slice(0, 6)}...${addr.slice(-4)}`,
+          description: 'Discovered via x402 payment activity',
+          category: 'x402-seller',
+          has_erc8004_identity: false,
+          verified: false,
+          trust_score: 0,
+          success_rate: 0,
+          total_revenue_usdc: Number(row.total_volume_usdc) || 0,
+          transaction_count: Number(row.tx_count) || 0,
+          unique_customers: Number(row.unique_buyers) || 0,
+          revenue_30d: Number(row.total_volume_usdc) || 0,
+          tx_count_30d: Number(row.tx_count) || 0,
+          base_price_usdc: 0,
+          avg_response_time_ms: 0,
+          rank_trust: 0,
+          last_active_at: row.last_tx_at ? String(row.last_tx_at) : '',
+          avg_reputation: 0,
+          total_feedback: 0,
+        });
+      }
+    } catch (error: any) {
+      console.error('[agents] Error merging x402 sellers:', error.message);
     }
 
     // Filter by min trust score
