@@ -128,11 +128,12 @@ export async function GET(req: NextRequest) {
     // Also search Turso DB (has curated/seeded agents with real names)
     try {
       const tursoResult = await turso.execute({
-        sql: `SELECT wallet_address, '' as id, 0 as token_id, name, description, category, 8453 as chain_id,
+        sql: `SELECT wallet_address, '' as id, COALESCE(erc8004_token_id, 0) as token_id,
+              name, description, capabilities as category, COALESCE(erc8004_chain_id, 8453) as chain_id,
               trust_score, transaction_count, total_revenue_usdc, has_erc8004_identity
-              FROM agents WHERE name LIKE ? OR description LIKE ? OR category LIKE ?
+              FROM agents WHERE name LIKE ? OR description LIKE ?
               ORDER BY trust_score DESC LIMIT 50`,
-        args: [`%${query}%`, `%${query}%`, `%${query}%`],
+        args: [`%${query}%`, `%${query}%`],
       });
       const existingWallets = new Set(candidates.map((a: any) => a.wallet_address?.toLowerCase()));
       for (const row of tursoResult.rows) {
