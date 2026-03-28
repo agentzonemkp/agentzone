@@ -35,7 +35,7 @@ export default function ExplorePage() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [query, setQuery] = useState("");
   const [sortBy, setSortBy] = useState("composite_score");
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState("both");
   const [minScore, setMinScore] = useState(0);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
