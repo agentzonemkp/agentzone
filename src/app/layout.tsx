@@ -25,6 +25,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
+      <head>
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+      </head>
       <body className={`${jetbrains.variable} ${outfit.variable} font-mono antialiased bg-[#07080a] text-[#e8eaed]`}>
         <Providers>{children}</Providers>
       </body>
