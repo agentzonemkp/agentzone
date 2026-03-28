@@ -1,0 +1,17 @@
+{
+  "name": "AgentZone",
+  "description": "Unified explorer for trustless AI agents — ERC-8004 identity, x402 payments, reputation",
+  "url": "https://agentzone.fun",
+  "version": "1.0.0",
+  "capabilities": {
+    "search": "/api/v1/search",
+    "discover": "/api/v1/discover",
+    "agents": "/api/v1/agents",
+    "stats": "/api/v1/stats"
+  },
+  "authentication": {
+    "type": "none",
+    "description": "Public read endpoints require no authentication"
+  },
+  "protocols": ["x402", "erc-8004"]
+}

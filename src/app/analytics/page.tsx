@@ -65,6 +65,8 @@ export default function AnalyticsPage() {
         <div className="flex gap-4 items-center text-xs">
           <Link href="/explore" className="text-[#7a8194] hover:text-[#00ff88]">Explore</Link>
           <Link href="/analytics" className="text-[#00ff88]">Analytics</Link>
+          <Link href="/console" className="text-[#7a8194] hover:text-[#00ff88]">Console</Link>
+          <Link href="/docs" className="text-[#7a8194] hover:text-[#00ff88]">Docs</Link>
         </div>
       </nav>
 
@@ -146,7 +148,7 @@ export default function AnalyticsPage() {
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie data={data.volumeByChain} dataKey="agents" nameKey="chain" cx="50%" cy="50%" outerRadius={80}
-                  label={({ name, value }) => `${name} (${value})`}>
+                  label={({ name, value }) => `${name} (${value?.toLocaleString()})`}>
                   {data.volumeByChain.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}

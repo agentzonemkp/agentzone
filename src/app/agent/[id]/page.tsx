@@ -110,7 +110,12 @@ export default function AgentPage({ params }: { params: Promise<{ id: string }> 
           <span className="w-2 h-2 rounded-full bg-[#00ff88] shadow-[0_0_8px_#00ff88] animate-pulse" />
           AgentZone
         </Link>
-        <ConnectButton showBalance={false} chainStatus="icon" />
+        <div className="flex gap-4 items-center text-xs">
+          <Link href="/explore" className="text-[#7a8194] hover:text-[#00ff88] hidden sm:block">Explore</Link>
+          <Link href="/analytics" className="text-[#7a8194] hover:text-[#00ff88] hidden sm:block">Analytics</Link>
+          <Link href="/docs" className="text-[#7a8194] hover:text-[#00ff88] hidden sm:block">Docs</Link>
+          <ConnectButton showBalance={false} chainStatus="icon" />
+        </div>
       </nav>
 
       <main className="max-w-[1200px] mx-auto px-4 sm:px-6 pt-20 sm:pt-24 pb-16">

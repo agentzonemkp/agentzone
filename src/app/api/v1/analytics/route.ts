@@ -64,6 +64,9 @@ export async function GET(req: NextRequest) {
       ? reputations.reduce((s: number, r: any) => s + (r.reputation_score || 0), 0) / reputations.length
       : 0;
     const totalFeedback = reputations.reduce((s: number, r: any) => s + (r.feedback_count || 0), 0);
+    
+    // Cap reputation at 100 (scores are raw big numbers, not 0-100)
+    const normalizedReputation = Math.min(Math.round(avgReputation * 10) / 10, 100);
 
     // Generate time-series from on-chain registration activity (approximation based on token IDs)
     const days = range === '24h' ? 1 : range === '7d' ? 7 : range === '30d' ? 30 : 90;
@@ -95,7 +98,7 @@ export async function GET(req: NextRequest) {
       agentsWithMetadata: agentsWithMeta,
       totalReputationEntries: reputations.length,
       totalFeedback,
-      avgReputationScore: Math.round(avgReputation * 10) / 10,
+      avgReputationScore: normalizedReputation,
       chains: 2,
 
       // Payment KPIs (from Turso — currently zero)

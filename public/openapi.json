@@ -1,0 +1,209 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "AgentZone API",
+    "version": "1.0.0",
+    "description": "Unified explorer for trustless AI agents — ERC-8004 identity, x402 payments, reputation",
+    "contact": {
+      "url": "https://agentzone.fun"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://agentzone.fun/api/v1",
+      "description": "Production"
+    }
+  ],
+  "paths": {
+    "/agents": {
+      "get": {
+        "summary": "List agents",
+        "description": "Get paginated list of verified AI agents",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 50 }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": { "type": "integer", "default": 0 }
+          },
+          {
+            "name": "sort_by",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["trust_score", "transaction_count", "reputation"] }
+          },
+          {
+            "name": "min_trust_score",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 0, "maximum": 100 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of agents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "agents": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Agent" }
+                    },
+                    "count": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/{id}": {
+      "get": {
+        "summary": "Get agent by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agent detail",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Agent" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/search": {
+      "get": {
+        "summary": "Search agents",
+        "description": "Semantic search across agent names, descriptions, and metadata",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 50 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "agents": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Agent" }
+                    },
+                    "count": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stats": {
+      "get": {
+        "summary": "Network statistics",
+        "responses": {
+          "200": {
+            "description": "Network-wide stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total_agents": { "type": "integer" },
+                    "verified_agents": { "type": "integer" },
+                    "total_transactions": { "type": "integer" },
+                    "total_volume_usdc": { "type": "number" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/analytics": {
+      "get": {
+        "summary": "Time-series analytics",
+        "parameters": [
+          {
+            "name": "range",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["24h", "7d", "30d", "90d"], "default": "7d" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Analytics data"
+          }
+        }
+      }
+    },
+    "/discover": {
+      "get": {
+        "summary": "JSON-LD agent discovery",
+        "description": "Machine-readable agent directory with schema.org markup",
+        "parameters": [
+          {
+            "name": "min_trust",
+            "in": "query",
+            "schema": { "type": "integer", "default": 0 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON-LD agent list"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Agent": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "wallet_address": { "type": "string" },
+          "token_id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "category": { "type": "string" },
+          "verified": { "type": "boolean" },
+          "has_erc8004_identity": { "type": "boolean" },
+          "trust_score": { "type": "integer" },
+          "transaction_count": { "type": "integer" },
+          "total_revenue_usdc": { "type": "number" },
+          "avg_reputation": { "type": "number" },
+          "total_feedback": { "type": "integer" },
+          "last_active_at": { "type": "string", "format": "date-time" },
+          "chain_id": { "type": "integer" }
+        }
+      }
+    }
+  }
+}

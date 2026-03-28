@@ -108,6 +108,15 @@
   }
   .nav-links a:hover { color: var(--accent-green); }
 
+  .hamburger {
+    display: none; flex-direction: column; gap: 4px; cursor: pointer;
+    width: 24px; height: 24px; justify-content: center;
+  }
+  .hamburger span {
+    width: 100%; height: 2px; background: var(--text-secondary);
+    transition: all 0.3s;
+  }
+
   .nav-cta {
     font-size: 0.75rem; padding: 0.5rem 1.25rem;
     border: 1px solid var(--accent-green); color: var(--accent-green);
@@ -467,6 +476,12 @@
     .api-grid { grid-template-columns: 1fr; }
     .chains-inner { flex-direction: column; align-items: flex-start; gap: 1.5rem; }
     .nav-links { display: none; }
+    .nav-links.active {
+      display: flex; flex-direction: column; position: absolute;
+      top: 56px; left: 0; right: 0; background: var(--bg);
+      border-bottom: 1px solid var(--border); padding: 1rem 2rem; gap: 1rem;
+    }
+    .hamburger { display: flex; }
     .hero h1 { font-size: 2.2rem; }
     .hero-actions { flex-direction: column; }
   }
@@ -475,7 +490,12 @@
 <body>
 
 <nav>
-  <div class="nav-logo"><span class="dot"></span> AgentZone</div>
+  <a href="/" class="nav-logo"><span class="dot"></span> AgentZone</a>
+  <div class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('active')">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
   <div class="nav-links">
     <a href="#explorer">Explorer</a>
     <a href="#api">API</a>
@@ -736,8 +756,10 @@
     <div>&copy; 2026 AgentZone &middot; Built in Dubai</div>
     <div class="footer-links">
       <a href="/docs">Docs</a>
+      <a href="/console">Console</a>
+      <a href="/terms">Terms</a>
+      <a href="/privacy">Privacy</a>
       <a href="https://github.com/agentzonemkp/agentzone" target="_blank" rel="noopener">GitHub</a>
-      <a href="/docs">API Docs</a>
     </div>
   </div>
 </footer>

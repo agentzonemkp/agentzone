@@ -43,19 +43,36 @@ export default function ExplorePage() {
 
   const fetchAgents = useCallback(async (pageNum = 0, append = false) => {
     setLoading(true);
-    const params = new URLSearchParams();
-    params.set("limit", String(PAGE_SIZE));
-    params.set("offset", String(pageNum * PAGE_SIZE));
-    params.set("sort_by", sortBy);
-    if (minScore > 0) params.set("min_trust_score", String(minScore));
-    if (query) params.set("search", query);
-
+    
     try {
-      const res = await fetch(`/api/v1/agents?${params}`);
-      const data = await res.json();
-      const fetched = data.agents || [];
+      let fetched: Agent[] = [];
+      
+      // Use search endpoint if query is non-empty
+      if (query.trim()) {
+        const searchParams = new URLSearchParams();
+        searchParams.set("q", query);
+        searchParams.set("limit", String(PAGE_SIZE));
+        searchParams.set("offset", String(pageNum * PAGE_SIZE));
+        
+        const res = await fetch(`/api/v1/search?${searchParams}`);
+        const data = await res.json();
+        fetched = data.agents || [];
+      } else {
+        // Use regular agents endpoint
+        const params = new URLSearchParams();
+        params.set("limit", String(PAGE_SIZE));
+        params.set("offset", String(pageNum * PAGE_SIZE));
+        params.set("sort_by", sortBy);
+        if (minScore > 0) params.set("min_trust_score", String(minScore));
+        
+        const res = await fetch(`/api/v1/agents?${params}`);
+        const data = await res.json();
+        fetched = data.agents || [];
+      }
+      
       setAgents(prev => append ? [...prev, ...fetched] : fetched);
       setHasMore(fetched.length === PAGE_SIZE);
+      
       if (!append) {
         // Fetch total from stats
         try {
@@ -119,6 +136,8 @@ export default function ExplorePage() {
         </Link>
         <div className="flex gap-2 sm:gap-4 items-center text-xs">
           <Link href="/analytics" className="text-[#7a8194] hover:text-[#00ff88] hidden sm:block">Analytics</Link>
+          <Link href="/console" className="text-[#7a8194] hover:text-[#00ff88] hidden sm:block">Console</Link>
+          <Link href="/docs" className="text-[#7a8194] hover:text-[#00ff88] hidden sm:block">Docs</Link>
           <Link href="/register" className="text-[#7a8194] hover:text-[#00ff88] hidden sm:block">Register</Link>
           <ConnectButton showBalance={false} chainStatus="icon" />
         </div>

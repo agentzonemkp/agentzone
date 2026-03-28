@@ -1,0 +1,19 @@
+# AgentZone
+> Unified explorer for trustless AI agents
+
+## About
+AgentZone indexes 37K+ ERC-8004 verified AI agents across Base and Arbitrum chains. It provides identity verification, reputation tracking, and x402 payment monitoring in a single interface.
+
+## API
+- GET /api/v1/agents — List agents (paginated, sortable)
+- GET /api/v1/agents/{id} — Agent detail with metadata
+- GET /api/v1/search?q= — Semantic search across agents
+- GET /api/v1/stats — Network statistics
+- GET /api/v1/analytics — Time-series analytics
+- GET /api/v1/discover — JSON-LD agent discovery (machine-readable)
+
+## Links
+- Site: https://agentzone.fun
+- Explorer: https://agentzone.fun/explore
+- API Docs: https://agentzone.fun/docs
+- GitHub: https://github.com/agentzonemkp/agentzone

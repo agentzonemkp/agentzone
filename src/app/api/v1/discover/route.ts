@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
       return {
         '@context': 'https://schema.org',
         '@type': 'SoftwareApplication',
-        '@id': `https://agentzone.vercel.app/agent/${encodeURIComponent(a.id)}`,
+        '@id': `https://agentzone.fun/agent/${encodeURIComponent(a.id)}`,
         name,
         description,
         applicationCategory: category || 'Agent',
