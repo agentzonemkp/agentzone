@@ -127,13 +127,13 @@ export default function ExplorePage() {
   const totalPages = Math.ceil(totalAgents / PAGE_SIZE);
 
   return (
-    <div className="min-h-screen bg-[#07080a] text-[#e8eaed]">
-      <nav className="fixed top-0 left-0 right-0 z-50 h-14 px-4 sm:px-6 flex items-center justify-between border-b border-[#1a1d24] bg-[#07080a]/85 backdrop-blur-xl">
-        <Link href="/" className="font-bold flex items-center gap-2 text-sm">
+    <div className="min-h-screen bg-[#07080a] text-[#e8eaed] overflow-x-hidden">
+      <nav className="fixed top-0 left-0 right-0 z-50 h-14 px-3 sm:px-6 flex items-center justify-between border-b border-[#1a1d24] bg-[#07080a]/85 backdrop-blur-xl">
+        <Link href="/" className="font-bold flex items-center gap-2 text-sm shrink-0">
           <span className="w-2 h-2 rounded-full bg-[#00ff88] shadow-[0_0_8px_#00ff88] animate-pulse" />
           AgentZone
         </Link>
-        <div className="flex gap-2 sm:gap-4 items-center text-xs">
+        <div className="flex gap-2 sm:gap-4 items-center text-xs min-w-0">
           <Link href="/analytics" className="text-[#7a8194] hover:text-[#00ff88] hidden sm:block">Analytics</Link>
           <Link href="/console" className="text-[#7a8194] hover:text-[#00ff88] hidden sm:block">Console</Link>
           <Link href="/docs" className="text-[#7a8194] hover:text-[#00ff88] hidden sm:block">Docs</Link>
@@ -142,7 +142,7 @@ export default function ExplorePage() {
         </div>
       </nav>
 
-      <main className="max-w-[1200px] mx-auto px-4 sm:px-6 pt-20 sm:pt-24 pb-16">
+      <main className="max-w-[1200px] mx-auto px-3 sm:px-6 pt-20 sm:pt-24 pb-16">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
           <div>
@@ -169,37 +169,38 @@ export default function ExplorePage() {
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Search agents by name, description, or wallet…"
-            className="flex-1 bg-[#111318] border border-[#1a1d24] px-4 py-2.5 text-sm outline-none focus:border-[#00ff88]/30 font-mono"
+            placeholder="Search by name, wallet…"
+            className="flex-1 min-w-0 bg-[#111318] border border-[#1a1d24] px-3 sm:px-4 py-2.5 text-sm outline-none focus:border-[#00ff88]/30 font-mono"
           />
-          <button type="submit" className="bg-[#00ff88] text-[#07080a] px-5 py-2.5 text-xs font-bold uppercase tracking-wider hover:shadow-[0_0_20px_rgba(0,255,136,0.2)]">
+          <button type="submit" className="bg-[#00ff88] text-[#07080a] px-3 sm:px-5 py-2.5 text-xs font-bold uppercase tracking-wider hover:shadow-[0_0_20px_rgba(0,255,136,0.2)] shrink-0">
             Search
           </button>
         </form>
 
-        <div className="flex gap-3 mb-6 items-center flex-wrap">
+        <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-3 mb-6 items-center">
           <select value={filter} onChange={e => { setFilter(e.target.value); setPage(0); fetchAgents(0); }}
-            className="bg-[#111318] border border-[#1a1d24] px-3 py-1.5 text-xs text-[#7a8194] outline-none">
-            <option value="all">All Agents ({totalAgents.toLocaleString()})</option>
-            <option value="verified">ERC-8004 Verified</option>
-            <option value="x402">x402 Sellers</option>
+            className="bg-[#111318] border border-[#1a1d24] px-2 sm:px-3 py-1.5 text-xs text-[#7a8194] outline-none min-w-0">
+            <option value="all">All ({totalAgents.toLocaleString()})</option>
+            <option value="verified">ERC-8004</option>
+            <option value="x402">x402</option>
             <option value="both">Verified + Active</option>
           </select>
           <select value={sortBy} onChange={e => setSortBy(e.target.value)}
-            className="bg-[#111318] border border-[#1a1d24] px-3 py-1.5 text-xs text-[#7a8194] outline-none">
-            <option value="composite_score">Sort: Best Ranked</option>
-            <option value="reputation">Sort: Reputation</option>
-            <option value="transactions">Sort: Transactions</option>
-            <option value="volume">Sort: Volume</option>
-            <option value="trust_score">Sort: Trust Score</option>
-            <option value="recent">Sort: Most Recent</option>
+            className="bg-[#111318] border border-[#1a1d24] px-2 sm:px-3 py-1.5 text-xs text-[#7a8194] outline-none min-w-0">
+            <option value="composite_score">Best Ranked</option>
+            <option value="reputation">Reputation</option>
+            <option value="transactions">Transactions</option>
+            <option value="volume">Volume</option>
+            <option value="trust_score">Trust Score</option>
+            <option value="recent">Most Recent</option>
           </select>
-          <div className="flex items-center gap-2 text-xs text-[#454b5a]">
-            <span>Min trust: {minScore}</span>
+          <div className="col-span-2 flex items-center gap-2 text-xs text-[#454b5a]">
+            <span className="shrink-0">Trust: {minScore}</span>
             <input type="range" min="0" max="100" value={minScore}
               onChange={e => setMinScore(parseInt(e.target.value))}
               onMouseUp={() => { setPage(0); fetchAgents(0); }}
-              className="w-32 h-1 bg-[#1a1d24] appearance-none cursor-pointer accent-[#00ff88]" />
+              onTouchEnd={() => { setPage(0); fetchAgents(0); }}
+              className="flex-1 h-1 bg-[#1a1d24] appearance-none cursor-pointer accent-[#00ff88]" />
           </div>
         </div>
 
@@ -219,41 +220,41 @@ export default function ExplorePage() {
                 : "ERC-8004 verified agent";
 
               return (
-                <div key={agent.id} className="bg-[#111318] border border-[#1a1d24] hover:border-[#00ff88]/20 transition-colors flex flex-col">
+                <div key={agent.id} className="bg-[#111318] border border-[#1a1d24] hover:border-[#00ff88]/20 transition-colors flex flex-col overflow-hidden">
                   {/* Card Header */}
-                  <div className="p-4 flex-1">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-[#0d0f12] border border-[#1a1d24] flex items-center justify-center text-xs font-bold text-[#00ff88]">
+                  <div className="p-3 sm:p-4 flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <div className="w-8 h-8 bg-[#0d0f12] border border-[#1a1d24] flex items-center justify-center text-xs font-bold text-[#00ff88] shrink-0">
                           {name.charAt(0).toUpperCase()}
                         </div>
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <Link href={`/agent/${encodeURIComponent(agent.id)}`}
-                            className="text-sm font-bold hover:text-[#00ff88] transition-colors line-clamp-1">
+                            className="text-sm font-bold hover:text-[#00ff88] transition-colors block truncate">
                             {name}
                           </Link>
-                          <div className="text-[0.6rem] text-[#454b5a] font-mono">{shortAddr(agent.wallet_address)}</div>
+                          <div className="text-[0.6rem] text-[#454b5a] font-mono truncate">{shortAddr(agent.wallet_address)}</div>
                         </div>
                       </div>
                       <span className={`text-[0.55rem] px-1.5 py-0.5 border ${c.border} ${c.color} uppercase tracking-wider shrink-0`}>
                         {c.label}
                       </span>
                     </div>
-                    <p className="text-[0.7rem] text-[#7a8194] line-clamp-2 mb-3 leading-relaxed">{desc}</p>
+                    <p className="text-[0.7rem] text-[#7a8194] line-clamp-2 mb-3 leading-relaxed break-all">{desc}</p>
 
                     {/* Stats Row */}
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="bg-[#0d0f12] p-2 text-center">
-                        <div className="text-lg font-bold text-[#00ff88]">{agent.trust_score}</div>
-                        <div className="text-[0.5rem] text-[#454b5a] uppercase tracking-wider">Trust</div>
+                    <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                      <div className="bg-[#0d0f12] p-1.5 sm:p-2 text-center">
+                        <div className="text-base sm:text-lg font-bold text-[#00ff88]">{agent.trust_score}</div>
+                        <div className="text-[0.45rem] sm:text-[0.5rem] text-[#454b5a] uppercase tracking-wider">Trust</div>
                       </div>
-                      <div className="bg-[#0d0f12] p-2 text-center">
-                        <div className="text-lg font-bold text-[#00d4ff]">{agent.avg_reputation || "—"}</div>
-                        <div className="text-[0.5rem] text-[#454b5a] uppercase tracking-wider">Rep</div>
+                      <div className="bg-[#0d0f12] p-1.5 sm:p-2 text-center">
+                        <div className="text-base sm:text-lg font-bold text-[#00d4ff]">{agent.avg_reputation || "—"}</div>
+                        <div className="text-[0.45rem] sm:text-[0.5rem] text-[#454b5a] uppercase tracking-wider">Rep</div>
                       </div>
-                      <div className="bg-[#0d0f12] p-2 text-center">
-                        <div className="text-lg font-bold text-[#e8eaed]">{agent.transaction_count || 0}</div>
-                        <div className="text-[0.5rem] text-[#454b5a] uppercase tracking-wider">Txns</div>
+                      <div className="bg-[#0d0f12] p-1.5 sm:p-2 text-center overflow-hidden">
+                        <div className="text-base sm:text-lg font-bold text-[#e8eaed] truncate">{(agent.transaction_count || 0).toLocaleString()}</div>
+                        <div className="text-[0.45rem] sm:text-[0.5rem] text-[#454b5a] uppercase tracking-wider">Txns</div>
                       </div>
                     </div>
 
@@ -271,23 +272,23 @@ export default function ExplorePage() {
                     </div>
                   </div>
 
-                  {/* Card Actions — matches landing page */}
-                  <div className="flex border-t border-[#1a1d24]">
+                  {/* Card Actions */}
+                  <div className="grid grid-cols-4 border-t border-[#1a1d24]">
                     <Link href={`/agent/${encodeURIComponent(agent.id)}?tab=overview`}
-                      className="flex-1 py-2.5 text-center text-[0.6rem] uppercase tracking-wider text-[#7a8194] hover:text-[#00ff88] hover:bg-[#0d0f12] transition-colors border-r border-[#1a1d24]">
-                      💬 Chat
+                      className="py-2 text-center text-[0.5rem] sm:text-[0.6rem] uppercase tracking-wider text-[#7a8194] hover:text-[#00ff88] hover:bg-[#0d0f12] transition-colors border-r border-[#1a1d24]">
+                      <span className="hidden sm:inline">💬 </span>Chat
                     </Link>
                     <Link href={`/agent/${encodeURIComponent(agent.id)}?tab=x402`}
-                      className="flex-1 py-2.5 text-center text-[0.6rem] uppercase tracking-wider text-[#7a8194] hover:text-[#00d4ff] hover:bg-[#0d0f12] transition-colors border-r border-[#1a1d24]">
-                      🧪 Test Call
+                      className="py-2 text-center text-[0.5rem] sm:text-[0.6rem] uppercase tracking-wider text-[#7a8194] hover:text-[#00d4ff] hover:bg-[#0d0f12] transition-colors border-r border-[#1a1d24]">
+                      <span className="hidden sm:inline">🧪 </span>Test
                     </Link>
                     <Link href={`/agent/${encodeURIComponent(agent.id)}?tab=payments`}
-                      className="flex-1 py-2.5 text-center text-[0.6rem] uppercase tracking-wider text-[#7a8194] hover:text-[#ffaa00] hover:bg-[#0d0f12] transition-colors border-r border-[#1a1d24]">
-                      📊 Analytics
+                      className="py-2 text-center text-[0.5rem] sm:text-[0.6rem] uppercase tracking-wider text-[#7a8194] hover:text-[#ffaa00] hover:bg-[#0d0f12] transition-colors border-r border-[#1a1d24]">
+                      <span className="hidden sm:inline">📊 </span>Stats
                     </Link>
                     <Link href={`/agent/${encodeURIComponent(agent.id)}?tab=reputation`}
-                      className="flex-1 py-2.5 text-center text-[0.6rem] uppercase tracking-wider text-[#7a8194] hover:text-[#a855f7] hover:bg-[#0d0f12] transition-colors">
-                      🤝 Subscribe
+                      className="py-2 text-center text-[0.5rem] sm:text-[0.6rem] uppercase tracking-wider text-[#7a8194] hover:text-[#a855f7] hover:bg-[#0d0f12] transition-colors">
+                      <span className="hidden sm:inline">🤝 </span>Rep
                     </Link>
                   </div>
                 </div>
@@ -367,17 +368,17 @@ export default function ExplorePage() {
 
           <div className="flex gap-1">
             {/* Page number buttons — fewer on mobile */}
-            {Array.from({ length: Math.min(typeof window !== "undefined" && window.innerWidth < 640 ? 3 : 7, totalPages) }, (_, i) => {
-              const maxVisible = 7;
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              const maxVisible = 5;
               let p: number;
               if (totalPages <= maxVisible) {
                 p = i;
-              } else if (page < 4) {
+              } else if (page < 3) {
                 p = i;
-              } else if (page > totalPages - 4) {
+              } else if (page > totalPages - 3) {
                 p = totalPages - maxVisible + i;
               } else {
-                p = page - 3 + i;
+                p = page - 2 + i;
               }
               return (
                 <button key={p} onClick={() => goToPage(p)}
