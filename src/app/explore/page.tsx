@@ -13,6 +13,7 @@ interface Agent {
   category: string;
   verified: boolean;
   has_erc8004_identity: boolean;
+  has_x402: boolean;
   trust_score: number;
   transaction_count: number;
   total_revenue_usdc: number;
@@ -33,7 +34,8 @@ const PAGE_SIZE = 50;
 export default function ExplorePage() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [query, setQuery] = useState("");
-  const [sortBy, setSortBy] = useState("rank");
+  const [sortBy, setSortBy] = useState("composite_score");
+  const [filter, setFilter] = useState("all");
   const [minScore, setMinScore] = useState(0);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -46,6 +48,7 @@ export default function ExplorePage() {
     
     try {
       let fetched: Agent[] = [];
+      let total = 0;
       
       // Use search endpoint if query is non-empty
       if (query.trim()) {
@@ -57,37 +60,33 @@ export default function ExplorePage() {
         const res = await fetch(`/api/v1/search?${searchParams}`);
         const data = await res.json();
         fetched = data.agents || [];
+        total = data.total || fetched.length;
       } else {
         // Use regular agents endpoint
         const params = new URLSearchParams();
         params.set("limit", String(PAGE_SIZE));
         params.set("offset", String(pageNum * PAGE_SIZE));
         params.set("sort_by", sortBy);
+        params.set("filter", filter);
         if (minScore > 0) params.set("min_trust_score", String(minScore));
         
         const res = await fetch(`/api/v1/agents?${params}`);
         const data = await res.json();
         fetched = data.agents || [];
+        total = data.total || fetched.length;
       }
       
       setAgents(prev => append ? [...prev, ...fetched] : fetched);
       setHasMore(fetched.length === PAGE_SIZE);
       
       if (!append) {
-        // Fetch total from stats
-        try {
-          const statsRes = await fetch("/api/v1/stats");
-          const stats = await statsRes.json();
-          setTotalAgents(stats.total_agents || fetched.length);
-        } catch {
-          setTotalAgents(fetched.length);
-        }
+        setTotalAgents(total);
       }
     } catch {
       if (!append) setAgents([]);
     }
     setLoading(false);
-  }, [sortBy, minScore, query]);
+  }, [sortBy, filter, minScore, query]);
 
   useEffect(() => {
     setPage(0);
@@ -179,12 +178,21 @@ export default function ExplorePage() {
         </form>
 
         <div className="flex gap-3 mb-6 items-center flex-wrap">
+          <select value={filter} onChange={e => { setFilter(e.target.value); setPage(0); fetchAgents(0); }}
+            className="bg-[#111318] border border-[#1a1d24] px-3 py-1.5 text-xs text-[#7a8194] outline-none">
+            <option value="all">All Agents ({totalAgents.toLocaleString()})</option>
+            <option value="verified">ERC-8004 Verified</option>
+            <option value="x402">x402 Sellers</option>
+            <option value="both">Verified + Active</option>
+          </select>
           <select value={sortBy} onChange={e => setSortBy(e.target.value)}
             className="bg-[#111318] border border-[#1a1d24] px-3 py-1.5 text-xs text-[#7a8194] outline-none">
-            <option value="rank">Sort: Best Ranked</option>
+            <option value="composite_score">Sort: Best Ranked</option>
             <option value="reputation">Sort: Reputation</option>
-            <option value="transaction_count">Sort: Transactions</option>
+            <option value="transactions">Sort: Transactions</option>
+            <option value="volume">Sort: Volume</option>
             <option value="trust_score">Sort: Trust Score</option>
+            <option value="recent">Sort: Most Recent</option>
           </select>
           <div className="flex items-center gap-2 text-xs text-[#454b5a]">
             <span>Min trust: {minScore}</span>
