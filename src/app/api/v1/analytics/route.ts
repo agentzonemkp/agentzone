@@ -95,19 +95,19 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Per-chain counts — probe how many agents exist on each chain
+    // Per-chain counts — binary search for Arbitrum
     let arbCount = 0;
     try {
-      // Binary search for Arbitrum count
       let lo = 0, hi = 5000;
       while (lo < hi) {
         const mid = Math.floor((lo + hi) / 2);
-        const q = `{ Agent(where: {chain_id: {_eq: 42161}}, offset: ${mid}, limit: 1) { id } }`;
-        const d: any = await graphqlClient.request(q);
+        const d: any = await graphqlClient.request(`{ Agent(where: {chain_id: {_eq: "42161"}}, offset: ${mid}, limit: 1) { id } }`);
         if (d.Agent?.length > 0) lo = mid + 1; else hi = mid;
       }
       arbCount = lo;
-    } catch {}
+    } catch (e) {
+      console.error('[Analytics] Arbitrum count error:', e);
+    }
 
     const baseCount = Math.max(totalAgents - arbCount, 0);
     const totalPct = baseCount + arbCount || 1;
