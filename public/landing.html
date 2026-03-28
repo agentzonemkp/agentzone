@@ -553,21 +553,22 @@
     try {
       const r = await fetch('/api/v1/stats');
       const d = await r.json();
-      const count = d.total_agents || 0;
+      const count = d.erc8004_agents || d.total_agents || 0;
       document.getElementById('stat-agents').textContent = count > 1000 ? (count/1000).toFixed(1) + 'K+' : count.toString();
       document.getElementById('stat-agents-sub').textContent = 'Verified on-chain';
       const chains = d.chains || 2;
       document.getElementById('stat-chains').textContent = chains;
       document.getElementById('stat-chains-sub').textContent = chains === 2 ? 'Base · Arbitrum' : chains + ' chains indexed';
       // x402 economy stats
-      const x402 = d.x402_economy;
-      if (x402) {
-        const txs = x402.total_transactions || 0;
+      const txs = d.total_transactions || 0;
+      if (txs > 0) {
         document.getElementById('stat-x402-txs').textContent = txs > 1000000 ? (txs/1000000).toFixed(1) + 'M' : txs > 1000 ? (txs/1000).toFixed(0) + 'K' : txs.toString();
-        document.getElementById('stat-x402-txs-sub').textContent = x402.unique_buyers.toLocaleString() + ' unique buyers';
-        const vol = x402.total_volume_usdc || 0;
+        const buyers = d.total_unique_buyers || 0;
+        document.getElementById('stat-x402-txs-sub').textContent = buyers.toLocaleString() + ' unique buyers';
+        const vol = d.total_volume_usdc || 0;
         document.getElementById('stat-x402-vol').textContent = vol > 1000000 ? '$' + (vol/1000000).toFixed(1) + 'M' : '$' + (vol/1000).toFixed(0) + 'K';
-        document.getElementById('stat-x402-vol-sub').textContent = x402.unique_sellers.toLocaleString() + ' active sellers';
+        const sellers = d.x402_sellers || 0;
+        document.getElementById('stat-x402-vol-sub').textContent = sellers.toLocaleString() + ' active sellers';
       }
     } catch(e) {
       document.getElementById('stat-agents').textContent = '35K+';
