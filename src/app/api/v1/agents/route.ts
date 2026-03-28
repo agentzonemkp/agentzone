@@ -95,27 +95,28 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // APPROACH: Start from x402 sellers (wallets with real transactions),
-    // then check which have ERC-8004 identity. Only the intersection gets listed.
+    // APPROACH: Get x402 seller wallets from Turso (fast, local), 
+    // then batch-verify ERC-8004 identity via GraphQL.
+    // Only the intersection gets listed: verified identity + real transactions.
     
-    // Step 1: Get all x402 sellers with transactions from Turso
+    // Step 1: Get top x402 sellers (sorted by volume, with tx > 0)
     const x402Result = await turso.execute(
-      'SELECT * FROM x402_payments WHERE tx_count > 0 ORDER BY total_volume_usdc DESC'
+      'SELECT * FROM x402_payments WHERE tx_count > 0 ORDER BY total_volume_usdc DESC LIMIT 5000'
     );
-    const x402Wallets = x402Result.rows.map(r => String(r.wallet_address).toLowerCase());
     const x402Map = new Map<string, any>();
     for (const row of x402Result.rows) {
       x402Map.set(String(row.wallet_address).toLowerCase(), row);
     }
+    const x402Wallets = [...x402Map.keys()];
 
-    // Step 2: Check which x402 wallets have ERC-8004 identity via GraphQL
-    // Query in batches (GraphQL _in has limits)
+    // Step 2: Check ERC-8004 identity in parallel batches (50 per query)
     let agents: any[] = [];
     const batchSize = 50;
+    const batchPromises = [];
     for (let i = 0; i < x402Wallets.length; i += batchSize) {
       const batch = x402Wallets.slice(i, i + batchSize);
-      try {
-        const data: any = await graphqlClient.request(`
+      batchPromises.push(
+        graphqlClient.request(`
           query FindVerifiedSellers($wallets: [String!]) {
             Agent(where: {wallet_address: {_in: $wallets}, has_erc8004_identity: {_eq: true}}) {
               id wallet_address chain_id token_id name description category
@@ -126,12 +127,16 @@ export async function GET(request: NextRequest) {
               reputation { reputation_score feedback_count client_address }
             }
           }
-        `, { wallets: batch });
-        const found = (data.Agent || []).map(mapAgent);
-        agents.push(...found);
-      } catch (e: any) {
-        console.error(`[agents] GraphQL batch ${i} failed:`, e.message);
-      }
+        `, { wallets: batch }).catch((e: any) => {
+          console.error(`[agents] GraphQL batch ${i} failed:`, e.message);
+          return { Agent: [] };
+        })
+      );
+    }
+    const results = await Promise.all(batchPromises);
+    for (const data of results) {
+      const found = ((data as any).Agent || []).map(mapAgent);
+      agents.push(...found);
     }
 
     // Step 3: Deduplicate (same wallet might have multiple tokens across chains)
