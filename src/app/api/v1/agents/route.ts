@@ -29,20 +29,47 @@ export async function GET(request: NextRequest) {
       try {
         const searchRes = await fetch(searchUrl.toString());
         const searchData = await searchRes.json();
-        const agents = (searchData.agents || []).map((a: any) => ({
-          ...a,
-          verified: a.has_erc8004_identity,
-          avg_reputation: 0,
-          total_feedback: 0,
-          success_rate: 0,
-          unique_customers: 0,
-          revenue_30d: 0,
-          tx_count_30d: 0,
-          base_price_usdc: 0,
-          avg_response_time_ms: 0,
-          rank_trust: 0,
-          last_active_at: '',
-        }));
+        // Enrich search results with reputation data from GraphQL
+        const searchAgents = searchData.agents || [];
+        const agentIds = searchAgents.map((a: any) => a.id).filter(Boolean);
+        let repMap = new Map<string, { avg: number; count: number }>();
+        if (agentIds.length > 0) {
+          try {
+            const repData: any = await graphqlClient.request(`
+              query GetReps($ids: [String!]) {
+                Agent(where: {id: {_in: $ids}}) {
+                  id
+                  reputation { reputation_score feedback_count }
+                }
+              }
+            `, { ids: agentIds });
+            for (const a of (repData.Agent || [])) {
+              const reps = a.reputation || [];
+              const avg = reps.length > 0
+                ? reps.reduce((s: number, r: any) => s + (r.reputation_score || 0), 0) / reps.length
+                : 0;
+              const count = reps.reduce((s: number, r: any) => s + (r.feedback_count || 0), 0);
+              repMap.set(a.id, { avg: Math.round(avg), count });
+            }
+          } catch {}
+        }
+        const agents = searchAgents.map((a: any) => {
+          const rep = repMap.get(a.id) || { avg: 0, count: 0 };
+          return {
+            ...a,
+            verified: a.has_erc8004_identity,
+            avg_reputation: rep.avg,
+            total_feedback: rep.count,
+            success_rate: 0,
+            unique_customers: 0,
+            revenue_30d: 0,
+            tx_count_30d: 0,
+            base_price_usdc: 0,
+            avg_response_time_ms: 0,
+            rank_trust: 0,
+            last_active_at: '',
+          };
+        });
         return NextResponse.json({ agents, count: agents.length, source: 'graphql' });
       } catch {
         // Fall through to standard list if search proxy fails
