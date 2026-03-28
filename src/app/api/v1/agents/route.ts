@@ -74,14 +74,14 @@ export async function GET(request: NextRequest) {
       wallet_address: row.wallet_address,
       chain_id: Number(row.chain_id) || 8453,
       token_id: row.token_id,
-      name: decodeField(String(row.name || '')),
-      description: decodeField(String(row.description || '')),
+      name: resolveName(String(row.name || ''), String(row.wallet_address || '')),
+      description: decodeHex(String(row.description || '')) || String(row.description || ''),
       category: row.category,
       has_erc8004_identity: Boolean(row.has_erc8004),
       has_x402: Boolean(row.has_x402),
       verified: Boolean(row.has_erc8004),
       trust_score: Number(row.trust_score) || 0,
-      avg_reputation: Number(row.avg_reputation) || 0,
+      avg_reputation: Math.round((Number(row.avg_reputation) || 0) * 10) / 10,
       total_feedback: Number(row.total_feedback) || 0,
       transaction_count: Number(row.tx_count) || 0,
       total_revenue_usdc: Number(row.total_volume_usdc) || 0,
@@ -115,17 +115,26 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function decodeField(val: string): string {
+function decodeHex(val: string): string {
   if (typeof val === 'string' && val.startsWith('0x') && val.length > 2) {
     try {
       const clean = val.slice(2);
-      if (clean.length === 0 || clean.length % 2 !== 0) return val;
+      if (clean.length === 0 || clean.length % 2 !== 0) return '';
       const bytes = Buffer.from(clean, 'hex');
-      const decoded = bytes.toString('utf-8');
-      // Only return decoded if it looks like valid text
-      if (/^[\x20-\x7E\s]+$/.test(decoded.trim())) return decoded.trim();
-      return val;
-    } catch { return val; }
+      const decoded = bytes.toString('utf-8').trim();
+      if (/^[\x20-\x7E\s]+$/.test(decoded) && decoded.length > 0) return decoded;
+    } catch {}
   }
-  return val || '';
+  return '';
+}
+
+function resolveName(name: string, wallet: string): string {
+  // Try raw name first
+  if (name && !name.startsWith('0x') && name.length > 0) return name;
+  // Try hex decode
+  const decoded = decodeHex(name);
+  if (decoded) return decoded;
+  // Fallback to formatted wallet address
+  if (wallet && wallet.length >= 10) return `${wallet.slice(0, 6)}…${wallet.slice(-4)}`;
+  return 'Unknown Agent';
 }
