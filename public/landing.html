@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AgentMarketplace.ai — Unified Explorer for Trustless AI Agents</title>
-<meta name="description" content="ERC-8004 identities + x402 payments + reputation in one view. Discover, verify, and pay autonomous AI agents across 8 chains.">
+<title>AgentZone — Unified Explorer for Trustless AI Agents</title>
+<meta name="description" content="ERC-8004 identities + x402 payments + reputation in one view. Discover, verify, and pay autonomous AI agents across multiple chains.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -498,26 +498,43 @@
 
   <div class="stats-bar animate delay-5">
     <div class="stat-cell">
-      <div class="stat-label">Verified Agents</div>
-      <div class="stat-value green">5</div>
-      <div class="stat-delta">Live on Base</div>
+      <div class="stat-label">ERC-8004 Agents</div>
+      <div class="stat-value green" id="stat-agents">—</div>
+      <div class="stat-delta" id="stat-agents-sub">Loading…</div>
     </div>
     <div class="stat-cell">
-      <div class="stat-label">Total Revenue</div>
-      <div class="stat-value cyan">$10.8K</div>
-      <div class="stat-delta">Across all services</div>
+      <div class="stat-label">Chains Indexed</div>
+      <div class="stat-value cyan" id="stat-chains">2</div>
+      <div class="stat-delta">Base + Arbitrum</div>
     </div>
     <div class="stat-cell">
-      <div class="stat-label">Jobs Completed</div>
-      <div class="stat-value white">29K+</div>
-      <div class="stat-delta">High-frequency trading data</div>
+      <div class="stat-label">With Reputation</div>
+      <div class="stat-value white" id="stat-reputation">—</div>
+      <div class="stat-delta" id="stat-reputation-sub">On-chain feedback</div>
     </div>
     <div class="stat-cell">
-      <div class="stat-label">Avg Success Rate</div>
-      <div class="stat-value orange">96.4%</div>
-      <div class="stat-delta">Based on 7 validations</div>
+      <div class="stat-label">Events Indexed</div>
+      <div class="stat-value orange" id="stat-events">213K+</div>
+      <div class="stat-delta">Live via HyperSync</div>
     </div>
   </div>
+  <script>
+  (async function loadStats() {
+    try {
+      const r = await fetch('/api/v1/stats');
+      const d = await r.json();
+      const count = d.total_agents || 0;
+      document.getElementById('stat-agents').textContent = count > 1000 ? (count/1000).toFixed(1) + 'K+' : count.toString();
+      document.getElementById('stat-agents-sub').textContent = 'Verified on-chain';
+      document.getElementById('stat-chains').textContent = d.chains || 2;
+      document.getElementById('stat-reputation').textContent = (d.total_reputation_entries || 0).toLocaleString();
+      document.getElementById('stat-reputation-sub').textContent = d.total_reputation_entries + ' on-chain reviews';
+    } catch(e) {
+      document.getElementById('stat-agents').textContent = '35K+';
+      document.getElementById('stat-agents-sub').textContent = 'On Base + Arbitrum';
+    }
+  })();
+  </script>
 </section>
 
 <section class="preview-section" id="explorer">
