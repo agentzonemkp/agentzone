@@ -156,14 +156,11 @@ export async function getAllX402PaymentData(): Promise<Map<string, X402PaymentDa
  * Refresh x402 payment data from on-chain logs
  * Scans recent blocks for USDC Transfer events from facilitator addresses
  */
-export async function refreshX402Data(agentWallets: string[], blocksToScan = 10000): Promise<number> {
-  console.log('[x402] Starting refresh for', agentWallets.length, 'agent wallets');
+export async function refreshX402Data(agentWallets: string[] = [], blocksToScan = 100000): Promise<number> {
+  console.log('[x402] Starting refresh, scanning last', blocksToScan, 'blocks');
   
   const currentBlock = await baseClient.getBlockNumber();
   const fromBlock = currentBlock - BigInt(blocksToScan);
-  
-  // Normalize agent addresses for lookup
-  const agentAddressSet = new Set(agentWallets.map((a) => a.toLowerCase()));
   
   // Map to store aggregated payment data
   const paymentMap = new Map<string, {
@@ -176,62 +173,66 @@ export async function refreshX402Data(agentWallets: string[], blocksToScan = 100
 
   console.log(`[x402] Scanning blocks ${fromBlock} to ${currentBlock}`);
 
-  // Query logs in chunks (Base RPC limit: 2000 blocks per query)
-  const CHUNK_SIZE = 2000;
+  // Query logs per-facilitator in chunks (filter server-side via indexed `from` param)
+  const CHUNK_SIZE = 10000; // Larger chunks since we filter by from address
   let totalLogsProcessed = 0;
 
-  for (let start = fromBlock; start < currentBlock; start += BigInt(CHUNK_SIZE)) {
-    const end = start + BigInt(CHUNK_SIZE) > currentBlock ? currentBlock : start + BigInt(CHUNK_SIZE);
+  // Process facilitators in batches of 5 (RPC topic arrays)
+  const FAC_BATCH_SIZE = 5;
+  for (let fi = 0; fi < FACILITATORS.length; fi += FAC_BATCH_SIZE) {
+    const facBatch = FACILITATORS.slice(fi, fi + FAC_BATCH_SIZE);
     
-    // Add delay between chunks to avoid rate limiting (public RPC)
-    if (start > fromBlock) {
-      await new Promise((resolve) => setTimeout(resolve, 500)); // 500ms delay
-    }
-    
-    try {
-      // Get all Transfer events FROM facilitator addresses
-      const logs = await baseClient.getLogs({
-        address: USDC_ADDRESS,
-        event: TRANSFER_EVENT,
-        fromBlock: start,
-        toBlock: end,
-      });
-
-      for (const log of logs) {
-        const { from, to, value } = log.args;
-        if (!from || !to || !value) continue;
-
-        const fromLower = from.toLowerCase();
-        const toLower = to.toLowerCase();
-
-        // Only count transfers FROM facilitators TO agent wallets
-        if (!FACILITATORS.includes(fromLower as Address)) continue;
-        if (!agentAddressSet.has(toLower)) continue;
-
-        // Initialize or update payment data for this agent
-        if (!paymentMap.has(toLower)) {
-          paymentMap.set(toLower, {
-            txCount: 0,
-            totalVolume: BigInt(0),
-            buyers: new Set(),
-            firstTx: log.blockNumber,
-            lastTx: log.blockNumber,
-          });
-        }
-
-        const data = paymentMap.get(toLower)!;
-        data.txCount += 1;
-        data.totalVolume += value;
-        // The buyer is whoever paid the facilitator (we don't have that info in Transfer event alone)
-        // For now, count unique facilitators as a proxy for unique buyers
-        data.buyers.add(fromLower);
-        data.firstTx = data.firstTx && data.firstTx < log.blockNumber ? data.firstTx : log.blockNumber;
-        data.lastTx = data.lastTx && data.lastTx > log.blockNumber ? data.lastTx : log.blockNumber;
-
-        totalLogsProcessed++;
+    for (let start = fromBlock; start < currentBlock; start += BigInt(CHUNK_SIZE)) {
+      const end = start + BigInt(CHUNK_SIZE) > currentBlock ? currentBlock : start + BigInt(CHUNK_SIZE);
+      
+      // Rate limit: delay between queries
+      if (start > fromBlock || fi > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 300));
       }
-    } catch (error: any) {
-      console.error(`[x402] Error fetching logs for blocks ${start}-${end}:`, error.message);
+      
+      try {
+        // Query Transfer events FROM specific facilitator addresses (server-side filter)
+        const logs = await baseClient.getLogs({
+          address: USDC_ADDRESS,
+          event: TRANSFER_EVENT,
+          args: { from: facBatch },
+          fromBlock: start,
+          toBlock: end,
+        });
+
+        for (const log of logs) {
+          const { from, to, value } = log.args;
+          if (!from || !to || !value) continue;
+
+          const fromLower = from.toLowerCase();
+          const toLower = to.toLowerCase();
+
+          // Skip transfers back to facilitators or USDC contract itself
+          if (FACILITATORS.includes(toLower as Address)) continue;
+
+          // Track ALL seller wallets (not just ERC-8004 agents)
+          if (!paymentMap.has(toLower)) {
+            paymentMap.set(toLower, {
+              txCount: 0,
+              totalVolume: BigInt(0),
+              buyers: new Set(),
+              firstTx: log.blockNumber,
+              lastTx: log.blockNumber,
+            });
+          }
+
+          const data = paymentMap.get(toLower)!;
+          data.txCount += 1;
+          data.totalVolume += value;
+          data.buyers.add(fromLower);
+          data.firstTx = data.firstTx && data.firstTx < log.blockNumber ? data.firstTx : log.blockNumber;
+          data.lastTx = data.lastTx && data.lastTx > log.blockNumber ? data.lastTx : log.blockNumber;
+
+          totalLogsProcessed++;
+        }
+      } catch (error: any) {
+        console.error(`[x402] Error fetching logs for fac batch ${fi}-${fi+FAC_BATCH_SIZE}, blocks ${start}-${end}:`, error.message);
+      }
     }
   }
 

@@ -4,7 +4,7 @@ import { refreshX402Data } from '@/lib/x402-data';
 
 export async function POST(request: NextRequest) {
   try {
-    const { blocks = 5000 } = await request.json().catch(() => ({}));
+    const { blocks = 100000 } = await request.json().catch(() => ({}));
 
     console.log('[x402/refresh] Starting x402 payment data refresh');
 
