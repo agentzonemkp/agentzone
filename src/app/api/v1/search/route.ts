@@ -169,18 +169,25 @@ export async function GET(req: NextRequest) {
 
     scored.sort((a: any, b: any) => b._score - a._score);
 
-    // Resolve metadata for top candidates with generic names (e.g. "Agent 1")
-    // This catches on-chain names like "ClawNews" that are stored in tokenURI
-    const topCandidates = scored.slice(0, Math.min(limit * 2, 50));
-    const needsResolve = topCandidates.filter((a: any) => {
-      const n = a.name || '';
-      return !n || /^Agent \d+$/.test(n) || (n.startsWith('0x') && n.length > 10);
-    });
-    if (needsResolve.length > 0) {
-      try {
+    // Also fetch top agents with resolved metadata (catches tokenURI names like "ClawNews")
+    // The standard agents list resolves these via batchResolveMetadata
+    try {
+      const topData: any = await graphqlClient.request(`{
+        Agent(limit: 100, order_by: {trust_score: desc}) {
+          id wallet_address token_id name description category chain_id
+          trust_score transaction_count total_revenue_usdc has_erc8004_identity
+        }
+      }`);
+      const topAgents = topData.Agent || [];
+      // Resolve metadata for generic-named agents
+      const needsResolve = topAgents.filter((a: any) => {
+        const n = a.name || '';
+        return !n || /^Agent \d+$/.test(n) || (n.startsWith('0x') && n.length > 10);
+      });
+      if (needsResolve.length > 0) {
         const metadata = await batchResolveMetadata(
           needsResolve.map((a: any) => ({ chain_id: a.chain_id || 8453, token_id: a.token_id })),
-          10 // max concurrent
+          10
         );
         for (const agent of needsResolve) {
           const key = `${agent.chain_id || 8453}_${agent.token_id}`;
@@ -189,15 +196,29 @@ export async function GET(req: NextRequest) {
             if (meta.name) agent.name = meta.name;
             if (meta.description) agent.description = meta.description;
             if (meta.category) agent.category = meta.category;
-            // Re-score with real metadata
-            agent._score = semanticScore(query, agent);
           }
         }
-        // Re-sort after metadata enrichment
-        scored.sort((a: any, b: any) => b._score - a._score);
-      } catch (e) {
-        console.error('[Search] Metadata resolution error:', e);
       }
+      // Add resolved top agents to candidates (deduped)
+      const existingIds = new Set(scored.map((a: any) => a.id));
+      for (const a of topAgents) {
+        if (!existingIds.has(a.id)) {
+          const decodedName = decode(a.name);
+          const decodedDesc = decode(a.description);
+          const decodedCat = decode(a.category);
+          scored.push({
+            ...a,
+            name: decodedName,
+            description: decodedDesc,
+            category: decodedCat,
+            _score: semanticScore(query, { ...a, name: decodedName, description: decodedDesc, category: decodedCat }),
+          });
+        }
+      }
+      // Re-sort after adding enriched candidates
+      scored.sort((a: any, b: any) => b._score - a._score);
+    } catch (e) {
+      console.error('[Search] Top agents resolution error:', e);
     }
 
     const results = scored.slice(0, limit).map((a: any) => ({
