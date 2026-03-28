@@ -1,6 +1,6 @@
 import { GraphQLClient } from 'graphql-request';
 
-const endpoint = process.env.GRAPHQL_ENDPOINT || 'https://indexer.dev.hyperindex.xyz/210e2af/v1/graphql';
+const endpoint = process.env.GRAPHQL_ENDPOINT || 'https://indexer.dev.hyperindex.xyz/3d1fbe9/v1/graphql';
 
 export const graphqlClient = new GraphQLClient(endpoint, {
   headers: {},
