@@ -13,10 +13,11 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Skip auth/keys/public agents endpoints from auth
+  // Skip auth for public endpoints
   if (
     req.nextUrl.pathname.startsWith('/api/v1/keys') ||
     req.nextUrl.pathname.startsWith('/api/auth') ||
+    req.nextUrl.pathname.startsWith('/api/health') ||
     req.nextUrl.pathname.startsWith('/api/v1/agents') ||
     req.nextUrl.pathname.startsWith('/api/v1/stats') ||
     req.nextUrl.pathname.startsWith('/api/v1/payments') ||

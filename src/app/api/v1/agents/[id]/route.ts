@@ -45,17 +45,22 @@ export async function GET(
       console.error('[API] GraphQL error, trying Turso:', gqlErr.message);
     }
 
-    // Fallback: try Turso agents_unified by wallet address or id
-    if (!agent) {
-      source = 'turso';
-      const result = await turso.execute({
-        sql: `SELECT * FROM agents_unified WHERE wallet_address = ? LIMIT 1`,
-        args: [agentId.toLowerCase()],
-      });
-      if (result.rows.length > 0) {
-        const row = result.rows[0];
+    // Always enrich from Turso agents_unified (has computed trust_score, x402 data)
+    const walletLookup = (agent?.wallet_address || agentId).toLowerCase();
+    const tursoResult = await turso.execute({
+      sql: `SELECT au.*, xp.tx_count as x402_tx, xp.total_volume_usdc as x402_vol, xp.unique_buyers as x402_buyers
+            FROM agents_unified au
+            LEFT JOIN x402_payments xp ON au.wallet_address = xp.wallet_address
+            WHERE au.wallet_address = ? LIMIT 1`,
+      args: [walletLookup],
+    });
+
+    if (tursoResult.rows.length > 0) {
+      const row = tursoResult.rows[0];
+      if (!agent) {
+        source = 'turso';
         agent = {
-          id: String(row.wallet_address || row.id),
+          id: String(row.wallet_address),
           wallet_address: String(row.wallet_address),
           chain_id: Number(row.chain_id) || 8453,
           contract_address: '0x8004A169FB4a3325136EB29fA0ceB6D2e539a432',
@@ -63,17 +68,27 @@ export async function GET(
           name: String(row.name || ''),
           description: String(row.description || ''),
           category: String(row.category || ''),
-          has_erc8004_identity: Boolean(row.has_erc8004_identity),
+          has_erc8004_identity: Boolean(row.has_erc8004),
           trust_score: Number(row.trust_score) || 0,
-          total_revenue_usdc: Number(row.total_revenue_usdc) || 0,
-          transaction_count: Number(row.transaction_count) || 0,
+          total_revenue_usdc: Number(row.total_volume_usdc) || 0,
+          transaction_count: Number(row.tx_count) || 0,
           avg_reputation: Number(row.avg_reputation) || 0,
           total_feedback: Number(row.total_feedback) || 0,
           has_x402: Boolean(row.has_x402),
-          x402_tx_count: Number(row.x402_tx_count) || 0,
-          x402_volume: Number(row.x402_volume) || 0,
+          x402_tx_count: Number(row.x402_tx) || 0,
+          x402_volume: Number(row.x402_vol) || 0,
           x402_buyers: Number(row.x402_buyers) || 0,
         };
+      } else {
+        // Overlay Turso computed scores onto GraphQL data
+        agent.trust_score = Number(row.trust_score) || agent.trust_score || 0;
+        agent.has_x402 = Boolean(row.has_x402) || agent.has_x402;
+        agent.x402_tx_count = Number(row.x402_tx) || 0;
+        agent.x402_volume = Number(row.x402_vol) || 0;
+        agent.x402_buyers = Number(row.x402_buyers) || 0;
+        if (row.name && String(row.name).length > 2) agent.name = String(row.name);
+        if (row.description) agent.description = String(row.description);
+        if (row.category) agent.category = String(row.category);
       }
     }
 
