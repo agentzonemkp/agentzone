@@ -116,8 +116,16 @@ export default function ExplorePage() {
   }
 
   function displayName(agent: Agent): string {
-    if (agent.name && !agent.name.startsWith("Agent ") && !agent.name.startsWith("0x"))
-      return agent.name;
+    const name = agent.name || '';
+    
+    // Sanitize raw URLs, data URIs, SVG, and long hex strings
+    if (name.startsWith('http') || name.startsWith('data:') || name.startsWith('<svg') || 
+        (name.startsWith('0x') && name.length > 20)) {
+      return shortAddr(agent.wallet_address || agent.id);
+    }
+    
+    if (name && !name.startsWith("Agent "))
+      return name;
     if (agent.description && agent.description.length > 0 && !agent.description.startsWith("0x"))
       return agent.description.slice(0, 50);
     return `Agent #${agent.token_id}`;

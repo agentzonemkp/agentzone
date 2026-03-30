@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/db';
-import { payments } from '@/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { createClient } from '@libsql/client';
+
+const turso = createClient({
+  url: process.env.DATABASE_URL!,
+  authToken: process.env.DATABASE_AUTH_TOKEN!,
+});
 
 export async function GET(
   request: NextRequest,
@@ -9,27 +12,38 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get('limit') || '20');
+    
+    // id param is now a wallet_address
+    const result = await turso.execute({
+      sql: `SELECT wallet_address, tx_count, total_volume_usdc, unique_buyers, first_tx_at, last_tx_at 
+            FROM x402_payments 
+            WHERE wallet_address = ?`,
+      args: [id.toLowerCase()],
+    });
 
-    const jobs = await db
-      .select()
-      .from(payments)
-      .where(eq(payments.agent_id, id))
-      .orderBy(desc(payments.timestamp))
-      .limit(limit);
+    if (result.rows.length === 0) {
+      return NextResponse.json({
+        jobs: [],
+        count: 0,
+        wallet_address: id,
+        tx_count: 0,
+        total_volume_usdc: 0,
+        unique_buyers: 0,
+      });
+    }
 
+    const row = result.rows[0];
+    
     return NextResponse.json({
-      jobs: jobs.map(j => ({
-        id: j.id,
-        txHash: j.tx_hash,
-        from: j.from_address,
-        amount: j.amount_usdc,
-        fee: j.fee_usdc,
-        status: j.status,
-        timestamp: j.timestamp,
-      })),
-      count: jobs.length,
+      jobs: {
+        wallet_address: String(row.wallet_address),
+        tx_count: Number(row.tx_count) || 0,
+        total_volume_usdc: Number(row.total_volume_usdc) || 0,
+        unique_buyers: Number(row.unique_buyers) || 0,
+        first_tx_at: row.first_tx_at ? String(row.first_tx_at) : null,
+        last_tx_at: row.last_tx_at ? String(row.last_tx_at) : null,
+      },
+      count: Number(row.tx_count) || 0,
     });
   } catch (error) {
     console.error('Jobs fetch error:', error);

@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { graphqlClient } from '@/lib/graphql-client';
+import { createClient } from '@libsql/client';
+
+const turso = createClient({
+  url: process.env.DATABASE_URL!,
+  authToken: process.env.DATABASE_AUTH_TOKEN!,
+});
 
 function hexToString(hex: string): string {
   if (!hex || hex === '0x' || !hex.startsWith('0x')) return hex || '';
-  try { return Buffer.from(hex.slice(2), 'hex').toString('utf-8'); } catch { return hex; }
+  const clean = hex.slice(2);
+  if (clean.length === 0 || clean.length % 2 !== 0) return hex;
+  try { return Buffer.from(clean, 'hex').toString('utf-8'); } catch { return hex; }
 }
 function decode(v: string) { return typeof v === 'string' && v.startsWith('0x') && v.length > 2 ? hexToString(v) : v || ''; }
 
@@ -18,55 +25,104 @@ export async function GET(req: NextRequest) {
   const format = searchParams.get('format') || 'jsonld'; // jsonld | simple
 
   try {
-    // Build GraphQL where clause
-    const where: string[] = [];
+    // Query Turso agents_unified table
+    const conditions: string[] = [];
+    const args: any[] = [];
+    
     if (capability) {
-      // Use _and to combine ilike + neq on same field
-      where.push(`_and: [{description: {_ilike: "%${capability}%"}}, {description: {_neq: ""}}]`);
-    } else {
-      where.push('description: {_neq: ""}');
+      conditions.push('(name LIKE ? OR description LIKE ? OR capabilities LIKE ?)');
+      const pattern = `%${capability}%`;
+      args.push(pattern, pattern, pattern);
     }
-    if (chain === 'base') where.push('chain_id: {_eq: 8453}');
-    if (chain === 'arbitrum') where.push('chain_id: {_eq: 42161}');
-    if (minTrust > 0) where.push(`trust_score: {_gte: ${minTrust}}`);
+    
+    if (chain === 'base') {
+      conditions.push('erc8004_chain_id = ?');
+      args.push(8453);
+    } else if (chain === 'arbitrum') {
+      conditions.push('erc8004_chain_id = ?');
+      args.push(42161);
+    }
+    
+    if (minTrust > 0) {
+      conditions.push('trust_score >= ?');
+      args.push(minTrust);
+    }
+    
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    
+    const result = await turso.execute({
+      sql: `SELECT wallet_address, erc8004_token_id as token_id, name, description, 
+            capabilities as category, erc8004_chain_id as chain_id,
+            trust_score, tx_count as transaction_count, total_volume_usdc as total_revenue_usdc,
+            has_erc8004, has_x402, composite_score
+            FROM agents_unified
+            ${whereClause}
+            ORDER BY composite_score DESC
+            LIMIT ?`,
+      args: [...args, limit],
+    });
 
-    const whereClause = where.length > 0 ? `where: {${where.join(', ')}}` : '';
+    const rawAgents = result.rows.map((row: any) => ({
+      id: String(row.wallet_address),
+      wallet_address: String(row.wallet_address),
+      token_id: String(row.token_id || ''),
+      name: decode(String(row.name || '')),
+      description: decode(String(row.description || '')),
+      category: decode(String(row.category || '')),
+      chain_id: Number(row.chain_id) || 8453,
+      contract_address: '0x8004A169FB4a3325136EB29fA0ceB6D2e539a432',
+      trust_score: Number(row.trust_score) || 0,
+      transaction_count: Number(row.transaction_count) || 0,
+      total_revenue_usdc: Number(row.total_revenue_usdc) || 0,
+      has_erc8004_identity: Boolean(row.has_erc8004),
+      has_x402: Boolean(row.has_x402),
+    }));
 
-    const data: any = await graphqlClient.request(`{
-      Agent(${whereClause}, order_by: {trust_score: desc}, limit: ${limit}) {
-        id wallet_address token_id name description category chain_id contract_address
-        trust_score transaction_count total_revenue_usdc has_erc8004_identity
-        success_rate avg_response_time_ms base_price_usdc pricing_model api_endpoint
-        reputation { reputation_score feedback_count client_address }
+    // Apply data quality filter
+    const filtered = rawAgents.filter((a: any) => {
+      const name = a.name || '';
+      const desc = a.description || '';
+      
+      if (name.startsWith('Agent #')) {
+        const hasJunkDesc = desc.includes('data:application') || 
+                           desc.includes('<svg') || 
+                           desc.includes('pragma solidity') || 
+                           desc.includes('localhost') ||
+                           (desc.startsWith('http://') || desc.startsWith('https://'));
+        if (hasJunkDesc) return false;
       }
-    }`);
+      
+      if (desc.includes('<svg') || desc.includes('pragma solidity')) return false;
+      if (name.startsWith('data:')) return false;
+      
+      return true;
+    });
 
-    const agents = (data.Agent || []).map((a: any) => {
-      const name = decode(a.name) || `Agent #${a.token_id}`;
-      const description = decode(a.description);
-      const category = decode(a.category);
+    const agents = filtered.map((a: any) => {
+      const name = a.name || `Agent #${a.token_id}`;
+      const description = a.description;
+      const category = a.category;
 
       if (format === 'simple') {
         return {
-          id: a.id,
+          id: a.wallet_address,
           wallet: a.wallet_address,
           name,
           description,
           category,
           chain: a.chain_id === 8453 ? 'base' : a.chain_id === 42161 ? 'arbitrum' : `chain_${a.chain_id}`,
           trust_score: a.trust_score || 0,
-          api_endpoint: a.api_endpoint || null,
+          api_endpoint: null,
           pricing: {
-            model: a.pricing_model || 'per_call',
-            base_usdc: a.base_price_usdc || 0,
+            model: 'per_call',
+            base_usdc: 0,
           },
           reputation: {
-            score: a.reputation?.length > 0
-              ? Math.round(a.reputation.reduce((s: number, r: any) => s + (r.reputation_score || 0), 0) / a.reputation.length)
-              : 0,
-            feedback_count: a.reputation?.reduce((s: number, r: any) => s + (r.feedback_count || 0), 0) || 0,
+            score: a.trust_score || 0,
+            feedback_count: 0,
           },
           erc8004: a.has_erc8004_identity,
+          x402: a.has_x402,
         };
       }
 
@@ -74,27 +130,27 @@ export async function GET(req: NextRequest) {
       return {
         '@context': 'https://schema.org',
         '@type': 'SoftwareApplication',
-        '@id': `https://agentzone.fun/agent/${encodeURIComponent(a.id)}`,
+        '@id': `https://agentzone.fun/agent/${encodeURIComponent(a.wallet_address)}`,
         name,
         description,
         applicationCategory: category || 'Agent',
         operatingSystem: a.chain_id === 8453 ? 'Base' : a.chain_id === 42161 ? 'Arbitrum' : 'EVM',
         offers: {
           '@type': 'Offer',
-          price: a.base_price_usdc || 0,
+          price: 0,
           priceCurrency: 'USD',
           priceSpecification: {
             '@type': 'UnitPriceSpecification',
-            price: a.base_price_usdc || 0,
+            price: 0,
             priceCurrency: 'USDC',
-            unitText: a.pricing_model || 'per_call',
+            unitText: 'per_call',
           },
         },
         aggregateRating: {
           '@type': 'AggregateRating',
           ratingValue: a.trust_score || 0,
           bestRating: 100,
-          ratingCount: a.reputation?.reduce((s: number, r: any) => s + (r.feedback_count || 0), 0) || 0,
+          ratingCount: 0,
         },
         identifier: {
           '@type': 'PropertyValue',
@@ -106,9 +162,9 @@ export async function GET(req: NextRequest) {
           contract_address: a.contract_address,
           chain_id: a.chain_id,
           token_id: a.token_id,
-          api_endpoint: a.api_endpoint || null,
-          success_rate: a.success_rate || 0,
-          avg_response_time_ms: a.avg_response_time_ms || 0,
+          api_endpoint: null,
+          success_rate: 0,
+          avg_response_time_ms: 0,
           transaction_count: a.transaction_count || 0,
           total_revenue_usdc: a.total_revenue_usdc || 0,
           payment_protocol: 'x402',

@@ -70,6 +70,7 @@
             "name": "id",
             "in": "path",
             "required": true,
+            "description": "Agent wallet address (0x format)",
             "schema": { "type": "string" }
           }
         ],

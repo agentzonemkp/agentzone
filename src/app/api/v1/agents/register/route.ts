@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/db';
-import { agents, services } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { createClient } from '@libsql/client';
+
+const turso = createClient({
+  url: process.env.DATABASE_URL!,
+  authToken: process.env.DATABASE_AUTH_TOKEN!,
+});
 
 // Register or update an agent's service listing
 export async function POST(request: NextRequest) {
@@ -12,86 +15,64 @@ export async function POST(request: NextRequest) {
       name,
       description,
       category,
-      api_endpoint,
-      pricing_model = 'per_call',
-      base_price_usdc = 0,
-      services: serviceList = [],
     } = body;
 
     if (!wallet_address) {
       return NextResponse.json({ error: 'wallet_address required' }, { status: 400 });
     }
 
-    // Upsert agent in Turso
-    const agentId = `custom_${wallet_address.toLowerCase()}`;
-    
-    const existing = await db.query.agents.findFirst({
-      where: eq(agents.id, agentId),
+    const walletLower = wallet_address.toLowerCase();
+
+    // Check if agent exists
+    const existing = await turso.execute({
+      sql: 'SELECT wallet_address FROM agents_unified WHERE wallet_address = ?',
+      args: [walletLower],
     });
 
-    if (existing) {
+    if (existing.rows.length > 0) {
       // Update
-      // Note: Using raw query since drizzle update doesn't have a clean API here
-      await db.update(agents).set({
-        name: name || existing.name,
-        description: description || existing.description,
-        category: category || existing.category,
-        api_endpoint: api_endpoint || existing.api_endpoint,
-        pricing_model: pricing_model,
-        base_price_usdc: base_price_usdc,
-      }).where(eq(agents.id, agentId));
+      await turso.execute({
+        sql: `UPDATE agents_unified 
+              SET name = COALESCE(?, name),
+                  description = COALESCE(?, description),
+                  capabilities = COALESCE(?, capabilities)
+              WHERE wallet_address = ?`,
+        args: [name || null, description || null, category || null, walletLower],
+      });
+
+      return NextResponse.json({
+        success: true,
+        wallet_address: walletLower,
+        message: 'Agent updated',
+      });
     } else {
-      await db.insert(agents).values({
-        id: agentId,
-        name: name || `Agent ${wallet_address.slice(0, 8)}`,
-        description: description || '',
-        category: category || 'General',
-        pricing_model,
-        base_price_usdc,
-        wallet_address: wallet_address.toLowerCase(),
-        api_endpoint: api_endpoint || '',
-        verified: false,
+      // Insert
+      await turso.execute({
+        sql: `INSERT INTO agents_unified (
+                wallet_address, name, description, capabilities,
+                has_erc8004, has_x402, trust_score, composite_score
+              ) VALUES (?, ?, ?, ?, 0, 0, 0, 0)`,
+        args: [
+          walletLower,
+          name || `Agent ${wallet_address.slice(0, 8)}`,
+          description || '',
+          category || 'General',
+        ],
+      });
+
+      return NextResponse.json({
+        success: true,
+        wallet_address: walletLower,
+        message: 'Agent registered',
       });
     }
-
-    // Register services
-    for (const svc of serviceList) {
-      const svcId = `${agentId}_${svc.name?.replace(/\s+/g, '_').toLowerCase() || crypto.randomUUID()}`;
-      await db.insert(services).values({
-        id: svcId,
-        agent_id: agentId,
-        name: svc.name || 'Default Service',
-        description: svc.description || '',
-        price_usdc: svc.price_usdc || 0,
-        endpoint: svc.endpoint || api_endpoint || '',
-        input_schema: svc.input_schema ? JSON.stringify(svc.input_schema) : null,
-        output_schema: svc.output_schema ? JSON.stringify(svc.output_schema) : null,
-        active: true,
-      }).onConflictDoUpdate({
-        target: services.id,
-        set: {
-          name: svc.name,
-          description: svc.description,
-          price_usdc: svc.price_usdc,
-          endpoint: svc.endpoint,
-          active: true,
-        },
-      });
-    }
-
-    return NextResponse.json({
-      success: true,
-      agent_id: agentId,
-      message: existing ? 'Agent updated' : 'Agent registered',
-      services_registered: serviceList.length,
-    });
   } catch (error: any) {
     console.error('Error registering agent:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// GET - list registered services for an agent
+// GET - list registered agent by wallet
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const wallet = searchParams.get('wallet')?.toLowerCase();
@@ -101,22 +82,27 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const agentId = `custom_${wallet}`;
-    const agent = await db.query.agents.findFirst({
-      where: eq(agents.id, agentId),
+    const result = await turso.execute({
+      sql: 'SELECT * FROM agents_unified WHERE wallet_address = ?',
+      args: [wallet],
     });
 
-    if (!agent) {
+    if (result.rows.length === 0) {
       return NextResponse.json({ error: 'Agent not registered' }, { status: 404 });
     }
 
-    const svcList = await db.query.services.findMany({
-      where: eq(services.agent_id, agentId),
-    });
-
+    const row = result.rows[0];
+    
     return NextResponse.json({
-      agent,
-      services: svcList,
+      agent: {
+        wallet_address: String(row.wallet_address),
+        name: String(row.name || ''),
+        description: String(row.description || ''),
+        category: String(row.capabilities || ''),
+        trust_score: Number(row.trust_score) || 0,
+        has_erc8004: Boolean(row.has_erc8004),
+        has_x402: Boolean(row.has_x402),
+      },
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

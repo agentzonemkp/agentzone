@@ -221,8 +221,32 @@ export async function GET(req: NextRequest) {
       console.error('[Search] Top agents resolution error:', e);
     }
 
-    const results = scored.slice(0, limit).map((a: any) => ({
-      id: a.id,
+    // Apply data quality filter
+    const filtered = scored.filter((a: any) => {
+      const name = a.name || '';
+      const desc = a.description || '';
+      
+      // Filter out junk data
+      if (name.startsWith('Agent #')) {
+        const hasJunkDesc = desc.includes('data:application') || 
+                           desc.includes('<svg') || 
+                           desc.includes('pragma solidity') || 
+                           desc.includes('localhost') ||
+                           (desc.startsWith('http://') || desc.startsWith('https://'));
+        if (hasJunkDesc) return false;
+      }
+      
+      // Filter raw SVG/Solidity in description
+      if (desc.includes('<svg') || desc.includes('pragma solidity')) return false;
+      
+      // Filter data URI names
+      if (name.startsWith('data:')) return false;
+      
+      return true;
+    });
+
+    const results = filtered.slice(0, limit).map((a: any) => ({
+      id: a.wallet_address || a.id,
       wallet_address: a.wallet_address,
       token_id: a.token_id,
       name: a.name || `Agent #${a.token_id}`,

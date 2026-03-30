@@ -124,6 +124,34 @@ export async function GET(
     const volume = (x402Data?.total_volume_usdc || agent.x402_volume || agent.total_revenue_usdc || 0);
     const buyers = (x402Data?.unique_buyers || agent.x402_buyers || agent.unique_customers || 0);
 
+    // Populate services array if has x402 data
+    const services = [];
+    if (hasX402 && x402Data && x402Data.tx_count > 0) {
+      services.push({
+        id: `x402_${walletAddr}`,
+        name: 'x402 Payment Service',
+        description: 'On-chain payment processing via x402 protocol',
+        price_usdc: volume > 0 && txCount > 0 ? Math.round((volume / txCount) * 100) / 100 : 0,
+        endpoint: resolvedEndpoint || null,
+        active: true,
+        total_volume: volume,
+        total_transactions: txCount,
+        unique_customers: buyers,
+      });
+    }
+
+    // Add resolved metadata services
+    if (resolvedServices && resolvedServices.length > 0) {
+      services.push(...resolvedServices.map((s: any) => ({
+        id: s.id || `service_${crypto.randomUUID()}`,
+        name: s.name || 'Service',
+        description: s.description || '',
+        price_usdc: s.price || 0,
+        endpoint: s.url || resolvedEndpoint || null,
+        active: true,
+      })));
+    }
+
     return NextResponse.json({
       agent: {
         id: agent.id,
@@ -136,7 +164,7 @@ export async function GET(
         category: resolvedCategory,
         image: resolvedImage,
         external_url: resolvedUrl,
-        services: resolvedServices,
+        services,
         has_erc8004_identity: agent.has_erc8004_identity || false,
         has_x402: hasX402 || false,
         verified: agent.verified || agent.has_erc8004_identity || false,

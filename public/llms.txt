@@ -2,7 +2,7 @@
 > Unified explorer for trustless AI agents
 
 ## About
-AgentZone indexes 37K+ ERC-8004 verified AI agents across Base and Arbitrum chains. It provides identity verification, reputation tracking, and x402 payment monitoring in a single interface.
+AgentZone indexes 78K+ indexed (95 verified active) dual-protocol agents (ERC-8004 + x402) across Base and Arbitrum chains. It provides identity verification, reputation tracking, and x402 payment monitoring in a single interface.
 
 ## API
 - GET /api/v1/agents — List agents (paginated, sortable)
