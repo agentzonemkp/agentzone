@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, Outfit } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -51,6 +52,13 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <head>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-F8847587SH"
+          strategy="afterInteractive"
+        />
+        <Script id="gtag-init" strategy="afterInteractive">
+          {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-F8847587SH');`}
+        </Script>
       </head>
       <body className={`${jetbrains.variable} ${outfit.variable} font-mono antialiased bg-[#07080a] text-[#e8eaed]`}>
         <Providers>{children}</Providers>
