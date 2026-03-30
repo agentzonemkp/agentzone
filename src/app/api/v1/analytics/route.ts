@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     const totalAgents = Number(agentCountResult.rows[0]?.total) || 0;
 
     const agentsWithMetaResult = await turso.execute({
-      sql: 'SELECT COUNT(*) as total FROM agents_unified WHERE description IS NOT NULL AND description != ""',
+      sql: "SELECT COUNT(*) as total FROM agents_unified WHERE description IS NOT NULL AND description != ''",
       args: [],
     });
     const agentsWithMeta = Number(agentsWithMetaResult.rows[0]?.total) || 0;
