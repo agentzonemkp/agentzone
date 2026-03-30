@@ -21,7 +21,23 @@ interface Agent {
   total_feedback: number;
   last_active_at: string;
   chain_id: number;
+  facilitators?: string[];
+  chains?: string[];
+  unique_customers?: number;
 }
+
+const FACILITATOR_COLORS: Record<string, string> = {
+  coinbase: 'border-[#0052ff]/30 text-[#4d8cff]',
+  daydreams: 'border-[#a855f7]/30 text-[#a855f7]',
+  heurist: 'border-[#f59e0b]/30 text-[#f59e0b]',
+  payAI: 'border-[#00ff88]/30 text-[#00ff88]',
+  thirdweb: 'border-[#e879f9]/30 text-[#e879f9]',
+  openx402: 'border-[#38bdf8]/30 text-[#38bdf8]',
+  virtuals: 'border-[#8b5cf6]/30 text-[#8b5cf6]',
+  treasure: 'border-[#ef4444]/30 text-[#ef4444]',
+  x402rs: 'border-[#6ee7b7]/30 text-[#6ee7b7]',
+};
+const DEFAULT_FAC_COLOR = 'border-[#454b5a]/30 text-[#7a8194]';
 
 const CHAINS: Record<number, { label: string; color: string; border: string }> = {
   8453: { label: "Base", color: "text-[#4d8cff]", border: "border-[#0052ff]/30" },
@@ -42,6 +58,7 @@ export default function ExplorePage() {
   const [hasMore, setHasMore] = useState(true);
   const [totalAgents, setTotalAgents] = useState(0);
   const [view, setView] = useState<"cards" | "table">("cards");
+  const [facilitator, setFacilitator] = useState("");
 
   const fetchAgents = useCallback(async (pageNum = 0, append = false) => {
     setLoading(true);
@@ -68,6 +85,7 @@ export default function ExplorePage() {
         params.set("offset", String(pageNum * PAGE_SIZE));
         params.set("sort_by", sortBy);
         params.set("filter", filter);
+        if (facilitator) params.set("facilitator", facilitator);
         if (minScore > 0) params.set("min_trust_score", String(minScore));
         
         const res = await fetch(`/api/v1/agents?${params}`);
@@ -86,7 +104,7 @@ export default function ExplorePage() {
       if (!append) setAgents([]);
     }
     setLoading(false);
-  }, [sortBy, filter, minScore, query]);
+  }, [sortBy, filter, facilitator, minScore, query]);
 
   useEffect(() => {
     setPage(0);
@@ -185,13 +203,29 @@ export default function ExplorePage() {
           </button>
         </form>
 
-        <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-3 mb-6 items-center">
+        <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-3 mb-6 items-center flex-wrap">
           <select value={filter} onChange={e => { setFilter(e.target.value); setPage(0); fetchAgents(0); }}
             className="bg-[#111318] border border-[#1a1d24] px-2 sm:px-3 py-1.5 text-xs text-[#7a8194] outline-none min-w-0">
             <option value="all">All ({totalAgents.toLocaleString()})</option>
             <option value="verified">ERC-8004</option>
             <option value="x402">x402</option>
             <option value="both">Verified + Active</option>
+          </select>
+          <select value={facilitator} onChange={e => { setFacilitator(e.target.value); setPage(0); fetchAgents(0); }}
+            className="bg-[#111318] border border-[#1a1d24] px-2 sm:px-3 py-1.5 text-xs text-[#7a8194] outline-none min-w-0">
+            <option value="">All Facilitators</option>
+            <option value="coinbase">Coinbase</option>
+            <option value="daydreams">Daydreams</option>
+            <option value="heurist">Heurist</option>
+            <option value="payAI">PayAI</option>
+            <option value="thirdweb">Thirdweb</option>
+            <option value="openx402">OpenX402</option>
+            <option value="virtuals">Virtuals</option>
+            <option value="treasure">Treasure</option>
+            <option value="x402rs">x402rs</option>
+            <option value="xecho">xEcho</option>
+            <option value="questflow">Questflow</option>
+            <option value="codenut">Codenut</option>
           </select>
           <select value={sortBy} onChange={e => setSortBy(e.target.value)}
             className="bg-[#111318] border border-[#1a1d24] px-2 sm:px-3 py-1.5 text-xs text-[#7a8194] outline-none min-w-0">
@@ -277,6 +311,12 @@ export default function ExplorePage() {
                       )}
                       {agent.has_x402 && (
                         <span className="text-[0.5rem] px-1.5 py-0.5 border border-[#3b82f6]/20 text-[#3b82f6] uppercase tracking-wider">x402</span>
+                      )}
+                      {agent.facilitators && agent.facilitators.length > 0 && agent.facilitators.slice(0, 4).map(f => (
+                        <span key={f} className={`text-[0.5rem] px-1.5 py-0.5 border ${FACILITATOR_COLORS[f] || DEFAULT_FAC_COLOR} uppercase tracking-wider`}>{f}</span>
+                      ))}
+                      {agent.facilitators && agent.facilitators.length > 4 && (
+                        <span className="text-[0.5rem] px-1.5 py-0.5 border border-[#1a1d24] text-[#454b5a]">+{agent.facilitators.length - 4}</span>
                       )}
                       {agent.category && !agent.category.startsWith("0x") && (
                         <span className="text-[0.5rem] px-1.5 py-0.5 border border-[#1a1d24] text-[#7a8194] uppercase tracking-wider">{agent.category}</span>

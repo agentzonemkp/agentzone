@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
   const search = searchParams.get('search') || searchParams.get('q') || '';
   const sort_by = searchParams.get('sort_by') || 'composite_score';
   const filter = searchParams.get('filter') || 'all'; // all | verified | x402 | both
+  const facilitator = searchParams.get('facilitator') || '';
 
   try {
     // Build WHERE clause
@@ -27,6 +28,11 @@ export async function GET(request: NextRequest) {
       conditions.push('has_x402 = 1');
     } else if (filter === 'both') {
       conditions.push('has_erc8004 = 1 AND has_x402 = 1');
+    }
+
+    if (facilitator) {
+      conditions.push('facilitators LIKE ?');
+      args.push(`%${facilitator}%`);
     }
     // 'all' = no filter, show everything
 
@@ -90,6 +96,8 @@ export async function GET(request: NextRequest) {
       composite_score: Number(row.composite_score) || 0,
       original_minter: row.original_minter,
       last_active_at: row.last_tx_at || row.erc8004_created_at || '',
+      facilitators: String(row.facilitators || '').split(',').filter(Boolean),
+      chains: String(row.chains || '').split(',').filter(Boolean),
       success_rate: 0,
       revenue_30d: Number(row.total_volume_usdc) || 0,
       tx_count_30d: Number(row.tx_count) || 0,
