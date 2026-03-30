@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
 
     // Top agents: verified + active, sorted by composite score
     const topAgentsResult = await turso.execute({
-      sql: `SELECT wallet_address, name, trust_score, tx_count, total_volume_usdc, erc8004_chain_id 
+      sql: `SELECT wallet_address, name, trust_score, tx_count, total_volume_usdc, chain_id 
             FROM agents_unified 
             WHERE has_erc8004 = 1 AND has_x402 = 1 
             ORDER BY composite_score DESC 
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
       revenue: Number(row.total_volume_usdc) || 0,
       jobs: Number(row.tx_count) || 0,
       trust_score: Number(row.trust_score) || 0,
-      chain_id: Number(row.erc8004_chain_id) || 8453,
+      chain_id: Number(row.chain_id) || 8453,
     }));
 
     // Generate time-series approximation
@@ -79,11 +79,11 @@ export async function GET(req: NextRequest) {
 
     // Chain breakdown from agents_unified
     const baseCountResult = await turso.execute({
-      sql: 'SELECT COUNT(*) as total FROM agents_unified WHERE erc8004_chain_id = 8453',
+      sql: 'SELECT COUNT(*) as total FROM agents_unified WHERE chain_id = 8453',
       args: [],
     });
     const arbCountResult = await turso.execute({
-      sql: 'SELECT COUNT(*) as total FROM agents_unified WHERE erc8004_chain_id = 42161',
+      sql: 'SELECT COUNT(*) as total FROM agents_unified WHERE chain_id = 42161',
       args: [],
     });
 

@@ -30,16 +30,16 @@ export async function GET(req: NextRequest) {
     const args: any[] = [];
     
     if (capability) {
-      conditions.push('(name LIKE ? OR description LIKE ? OR capabilities LIKE ?)');
+      conditions.push('(name LIKE ? OR description LIKE ? OR category LIKE ?)');
       const pattern = `%${capability}%`;
       args.push(pattern, pattern, pattern);
     }
     
     if (chain === 'base') {
-      conditions.push('erc8004_chain_id = ?');
+      conditions.push('chain_id = ?');
       args.push(8453);
     } else if (chain === 'arbitrum') {
-      conditions.push('erc8004_chain_id = ?');
+      conditions.push('chain_id = ?');
       args.push(42161);
     }
     
@@ -51,8 +51,8 @@ export async function GET(req: NextRequest) {
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
     
     const result = await turso.execute({
-      sql: `SELECT wallet_address, erc8004_token_id as token_id, name, description, 
-            capabilities as category, erc8004_chain_id as chain_id,
+      sql: `SELECT wallet_address, token_id as token_id, name, description, 
+            category, chain_id as chain_id,
             trust_score, tx_count as transaction_count, total_volume_usdc as total_revenue_usdc,
             has_erc8004, has_x402, composite_score
             FROM agents_unified

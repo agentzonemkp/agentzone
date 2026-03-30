@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
         sql: `UPDATE agents_unified 
               SET name = COALESCE(?, name),
                   description = COALESCE(?, description),
-                  capabilities = COALESCE(?, capabilities)
+                  category = COALESCE(?, category)
               WHERE wallet_address = ?`,
         args: [name || null, description || null, category || null, walletLower],
       });
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       // Insert
       await turso.execute({
         sql: `INSERT INTO agents_unified (
-                wallet_address, name, description, capabilities,
+                wallet_address, name, description, category,
                 has_erc8004, has_x402, trust_score, composite_score
               ) VALUES (?, ?, ?, ?, 0, 0, 0, 0)`,
         args: [
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
         wallet_address: String(row.wallet_address),
         name: String(row.name || ''),
         description: String(row.description || ''),
-        category: String(row.capabilities || ''),
+        category: String(row.category || ''),
         trust_score: Number(row.trust_score) || 0,
         has_erc8004: Boolean(row.has_erc8004),
         has_x402: Boolean(row.has_x402),
