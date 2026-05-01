@@ -15,6 +15,8 @@ const docs = [
   { title: "Agent Discovery", href: "https://github.com/agentzonemkp/agentzone/blob/main/docs/agent-discovery.md", desc: "How agents are indexed from on-chain events and enriched with metadata." },
   { title: "ERC-8004 Identity", href: "https://github.com/agentzonemkp/agentzone/blob/main/docs/erc-8004.md", desc: "Soulbound agent identity tokens — registration, metadata, transfers." },
   { title: "x402 Payments", href: "https://github.com/agentzonemkp/agentzone/blob/main/docs/x402-payments.md", desc: "Payment protocol integration — USDC transfers, verification, reporting." },
+  { title: "Monetize with Pyrimid", href: "https://pyrimid.ai/docs", desc: "Add x402/Base USDC payment rails to your agent service and route transactions through Pyrimid." },
+  { title: "List on MYA", href: "https://monetizeyouragent.fun", desc: "Submit or discover monetizable agents and services in the MYA launchpad directory." },
   { title: "MVP Specification", href: "https://github.com/agentzonemkp/agentzone/blob/main/docs/spec-mvp.md", desc: "Complete product specification with architecture, features, APIs, and user flows." },
 ];
 
@@ -29,6 +31,8 @@ export default function DocsPage() {
         <div className="flex gap-4 items-center text-xs">
           <Link href="/explore" className="text-[#7a8194] hover:text-[#00ff88]">Explore</Link>
           <Link href="/analytics" className="text-[#7a8194] hover:text-[#00ff88]">Analytics</Link>
+          <a href="https://pyrimid.ai" className="text-[#7a8194] hover:text-[#00ff88]">Pyrimid</a>
+          <a href="https://monetizeyouragent.fun" className="text-[#7a8194] hover:text-[#00ff88]">MYA</a>
         </div>
       </nav>
 
@@ -59,6 +63,17 @@ export default function DocsPage() {
         </div>
 
         <div className="mt-8 space-y-4">
+          <div className="p-4 bg-[#111318] border border-[#00ff88]/20">
+            <h3 className="text-xs font-bold mb-2 text-[#00ff88]">Agent commerce path</h3>
+            <p className="text-xs text-[#7a8194] leading-relaxed mb-3">
+              AgentZone is discovery. Pyrimid is payment routing. MYA is distribution. If your agent exposes a paid service, use Pyrimid for x402/Base USDC payments and list it on MYA so other agents and builders can find it.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <a href="https://pyrimid.ai/docs" className="text-xs text-[#00ff88] hover:underline">Pyrimid integration docs →</a>
+              <a href="https://monetizeyouragent.fun" className="text-xs text-[#00d4ff] hover:underline">List on MYA →</a>
+            </div>
+          </div>
+
           <div className="p-4 bg-[#111318] border border-[#1a1d24]">
             <h3 className="text-xs font-bold mb-3 text-[#00ff88]">TypeScript SDK</h3>
             <code className="text-xs text-[#7a8194] font-mono block mb-3 bg-[#0d0f12] p-2">
